@@ -58,6 +58,24 @@ TARGET_LINK_LIBRARIES(bondcentrictool
 )
 INSTALL(TARGETS bondcentrictool DESTINATION ${DESTINATION_DIR})
 
+### wiimotetool
+set(wiimotetool_SRCS wiimotetool.cpp)
+set(CWIID_LIBRARIES /usr/local/lib/libcwiid.so)
+qt4_wrap_ui(wiimotetool_UIS_H wiimotetool.ui)
+qt4_add_resources(wiimotetool_RC_SRCS wiimotetool.qrc)
+qt4_automoc(${wiimotetool_SRCS})
+ADD_LIBRARY(wiimotetool SHARED skeletontree.cpp quaternion.cpp navigate.cpp
+                            ${wiimotetool_SRCS} ${wiimotetool_RC_SRCS} ${wiimotetool_UIS_H}
+                            )
+TARGET_LINK_LIBRARIES(wiimotetool
+  ${OPENBABEL2_LIBRARIES}
+  ${QT_LIBRARIES}
+  ${OPENGL_LIBRARIES}
+  ${CWIID_LIBRARIES}
+  avogadro-lib
+)
+INSTALL(TARGETS wiimotetool DESTINATION ${DESTINATION_DIR})
+
 ### clickmeasuretool
 set(clickmeasuretool_SRCS clickmeasuretool.cpp)
 qt4_add_resources(clickmeasuretool_RC_SRCS clickmeasuretool.qrc)
