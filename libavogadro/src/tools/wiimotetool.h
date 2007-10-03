@@ -27,6 +27,8 @@
 
 #include "skeletontree.h"
 #include "ui_wiimotetool.h"
+#include "cwiid.h"
+#include <signal.h>
 
 #include <avogadro/glwidget.h>
 #include <avogadro/tool.h>
@@ -91,6 +93,8 @@ namespace Avogadro {
 
       virtual QWidget *settingsWidget();
 
+
+      
     public Q_SLOTS:
       /**
        * Sets the snap-to angle to a given angle in degrees.
@@ -172,6 +176,15 @@ namespace Avogadro {
       QCheckBox *         m_snapToCheckBox;
       QSpinBox *          m_snapToAngleBox;
       QGridLayout *       m_layout;
+      
+      /* Globals */
+      cwiid_wiimote_t *wiimote;// = NULL;
+      //cwiid_mesg_callback_t cwiid_callback_;
+
+      //bdaddr_t bdaddr;
+      //struct acc_cal wm_cal, nc_cal;
+      //struct cwiid_ir_mesg ir_data;
+
 
       //! \name Construction Plane/Angles Methods
       //@{
@@ -188,7 +201,6 @@ namespace Avogadro {
        *         bond, false otherwise, or if either of the pointers point to NULL.
        */
       bool isAtomInBond(Atom *atom, Bond *bond);
-
       /**
        * Draws a sector that shows the angle between two lines from a given origin.
        *
@@ -319,6 +331,9 @@ namespace Avogadro {
                                       Eigen::Vector3d centerVector,
                                       Eigen::Vector3d positionVector);
 
+      static void cwiid_callback(cwiid_wiimote_t *wiimote, int mesg_count,
+                     union cwiid_mesg mesg[], struct timespec *timestamp);
+      void set_report_mode();
     private Q_SLOTS:
      
        /**

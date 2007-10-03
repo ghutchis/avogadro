@@ -71,15 +71,16 @@ struct stick {
         uint8_t max;
 };
 
-/* Globals */
-cwiid_wiimote_t *wiimote = NULL;
-cwiid_mesg_callback_t cwiid_callback;
+//cwiid_wiimote_t *wiimote = NULL;
+//cwiid_mesg_callback_t cwiid_callback;
 
 bdaddr_t bdaddr;
 struct acc_cal wm_cal, nc_cal;
 struct cwiid_ir_mesg ir_data;
 struct stick nc_stick;
 struct stick cc_l_stick, cc_r_stick;
+//struct conf conf;
+
 // ##########  Constructor  ##########
 
 WiiMoteTool::WiiMoteTool(QObject *parent) : Tool(parent),
@@ -111,6 +112,8 @@ m_movedSinceButtonPressed(false),
         "- Left Click & Drag one of the Atoms in the Bond to change the angle\n"
         "- Right Click & Drag one of the Atoms in the Bond to change the length"));
   //action->setShortcut(Qt::Key_F9);
+  //&Avogadro::WiiMoteTool::cwiid_callback_ = &Avogadro::WiiMoteTool::cwiid_callback;
+  //wiimote = NULL;
 }
 
 // ##########  Desctructor  ##########
@@ -1261,6 +1264,49 @@ void WiiMoteTool::snapToAngleChanged(int newAngle)
   }
 }
 
+void WiiMoteTool::cwiid_callback(cwiid_wiimote_t *wiimote, int mesg_count,
+                    union cwiid_mesg mesg[], struct timespec *timestamp)
+{
+  int i;
+
+  for (i=0; i < mesg_count; i++) {
+    switch (mesg[i].type) {
+      case CWIID_MESG_BTN:
+        //process_btn_mesg((struct cwiid_btn_mesg *) &mesg[i]);
+        cout << "Msg Btn" << endl;
+        break;
+        
+      case CWIID_MESG_ACC:
+        cout << "ACC: " << &mesg[i].acc_mesg << endl;
+       // cwiid_acc(&mesg_array[i].acc_mesg);
+        break;
+      case CWIID_MESG_IR:
+        cout << "IR: " << &mesg[i].ir_mesg << endl;
+       // cwiid_ir(&mesg_array[i].ir_mesg);
+        break;
+      case CWIID_MESG_NUNCHUK:
+        //process_nunchuk_mesg((struct cwiid_nunchuk_mesg *) &mesg[i]);
+        cout << "Nun Chuck" << endl;
+        break;
+      case CWIID_MESG_CLASSIC:
+        //process_classic_mesg((struct cwiid_classic_mesg *) &mesg[i]);
+        cout << "Classic" << endl;
+        break;
+      case CWIID_MESG_ERROR:
+        cout << "Received Error, Disconnecting" << endl;
+        //Send disconnect event
+        break;
+      default:
+        break;
+    }
+  }
+  /**for (i=0; (i < CONF_MAX_PLUGINS) && conf.plugins[i].name; i++) {
+    process_plugin(&conf.plugins[i], mesg_count, mesg);
+  }**/
+  //send_event(&conf, EV_SYN, SYN_REPORT, 0);
+}
+
+
 void WiiMoteTool::connectClicked()
 {
   cout << "Connect WiiMote Clicked" << endl;
@@ -1282,20 +1328,17 @@ void WiiMoteTool::connectClicked()
                                "Unable to connect to Wii-Remote.\nMake sure it is in discoverable mode.");
       //cwiid_set_mesg_callback(wiimote, &cwiid_callback);
     } 
-      /**
-    else if (cwiid_set_mesg_callback(wiimote, &cwiid_callback)) {
-    ui.bCellSpinBox->setValue(10);
-
-
-    QMessageBox::information( this, "Wii-Remote",
+    else if (cwiid_set_mesg_callback(wiimote, &Avogadro::WiiMoteTool::cwiid_callback)) {
+    
+      QMessageBox::information( NULL, "Wii-Remote",
     "Error setting callback.");
 
     if (cwiid_close(wiimote)) {
-    QMessageBox::information( this, "Wii-Remote",
+    QMessageBox::information( NULL, "Wii-Remote",
     "Error on disconnect.");
-  }
+    }
     wiimote = NULL;
-  }**/
+    }
     else {
       //connected
       ui.m_buttonConnect->setText("Connected");
@@ -1305,8 +1348,7 @@ void WiiMoteTool::connectClicked()
         QMessageBox::information( NULL, "Wii-Remote",
                                   "Unable to retrieve accelerometer.\n");
       }
-      //      set_gui_state();
-      //      set_report_mode();
+      set_report_mode();
       cwiid_request_status(wiimote);
     }
 
@@ -1316,6 +1358,26 @@ void WiiMoteTool::connectClicked()
   } 
 }
 
+void WiiMoteTool::set_report_mode()
+{
+  uint8_t rpt_mode;
+  
+  rpt_mode = CWIID_RPT_STATUS | CWIID_RPT_BTN;
+
+  //if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(chkIR))) {
+    rpt_mode |= CWIID_RPT_IR;
+  //}
+  //if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(chkAcc))) {
+    rpt_mode |= CWIID_RPT_ACC;
+  /**}
+  if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(chkExt))) {
+    rpt_mode |= CWIID_RPT_EXT;
+  }**/
+  if (cwiid_set_rpt_mode(wiimote, rpt_mode)) {
+    QMessageBox::information( NULL, "Wii-Remote",
+                              "Error setting report mode.\n");
+  }
+}
 
 void WiiMoteTool::disconnectClicked()
 {
