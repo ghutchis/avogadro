@@ -47,9 +47,44 @@
 #include <QCheckBox>
 #include <QGridLayout>
 
+#include <stdint.h>
+#include <stdio.h>
+#include <linux/input.h>
+#include <linux/uinput.h>
 
 namespace Avogadro {
 
+  struct conf_st {
+    int fd;
+    struct uinput_user_dev dev;
+    unsigned char ff;
+  };
+
+  
+  class WiiMoteUInputThread: public QThread
+  {
+    Q_OBJECT;
+
+    public:
+      WiiMoteUInputThread(cwiid_wiimote_t *wiimote, QObject *parent=0);
+
+      void setEvent(input_event event);
+      int send_event(__u16 type, __u16 code, __s32 value);
+      void run();
+
+    Q_SIGNALS:
+      void stepsTaken(int steps);
+
+    public Q_SLOTS:
+      void stop();
+
+    private:
+      bool m_stop;
+      conf_st conf;
+      cwiid_wiimote_t* m_wiimote;
+      struct input_event m_event;
+  };
+  
   /**
    * @class WiiMoteTool
    * @brief Manipulation Tool using Wii-Mote
@@ -139,6 +174,10 @@ namespace Avogadro {
       void disconnectClicked();
 
 
+      WiiMoteUInputThread *uinputThread() const;
+      void detach() const;
+      void cleanup();
+      
     protected:
       GLWidget *          m_glwidget;
       QWidget *           m_settingsWidget;
@@ -179,6 +218,8 @@ namespace Avogadro {
       
       /* Globals */
       cwiid_wiimote_t *wiimote;// = NULL;
+      WiiMoteUInputThread *m_uinputThread;
+      mutable bool m_detached;
       //cwiid_mesg_callback_t cwiid_callback_;
 
       //bdaddr_t bdaddr;
