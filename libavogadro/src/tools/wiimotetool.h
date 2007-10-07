@@ -53,6 +53,13 @@
 #include <linux/uinput.h>
 
 #define CONF_WM_BTN_COUNT 11
+#define WMPLUGIN_MAX_AXIS_COUNT 6
+
+#define DEBOUNCE_THRESHOLD  50
+#define NEW_AMOUNT  0.3
+#define OLD_AMOUNT  (1.0 - NEW_AMOUNT)
+#define X_EDGE  50
+#define Y_EDGE  50
 
 namespace Avogadro {
 
@@ -67,6 +74,16 @@ namespace Avogadro {
     struct uinput_user_dev dev;
     unsigned char ff;
     struct btn_map wiimote_bmap[CONF_WM_BTN_COUNT];
+  };
+
+  struct wmplugin_axis {
+    char valid;
+    __s32 value;
+  };
+
+  struct wmplugin_data {
+    uint16_t buttons;
+    struct wmplugin_axis axes[WMPLUGIN_MAX_AXIS_COUNT];
   };
 
   class WiiMoteUInputThread: public QThread
@@ -228,7 +245,8 @@ namespace Avogadro {
       cwiid_wiimote_t *wiimote;// = NULL;
       conf_st m_conf;
       struct input_event m_event;
-
+      struct wmplugin_data m_data;
+      uint8_t m_rpt_mode;
       WiiMoteUInputThread *m_uinputThread;
       mutable bool m_detached;
       //cwiid_mesg_callback_t cwiid_callback_;
@@ -242,6 +260,9 @@ namespace Avogadro {
                           union cwiid_mesg mesg[], struct timespec *timestamp);
       static void cwiid_callback_wrapper(cwiid_wiimote_t *wiimote, int mesg_count,
                                          union cwiid_mesg mesg[], struct timespec *timestamp);
+      wmplugin_data *wmplugin_exec(int mesg_count, union cwiid_mesg mesg[]);
+
+      void process_ir(int mesg_count, union cwiid_mesg mesg[]);
       void set_report_mode();
       void load_conf();
       //! \name Construction Plane/Angles Methods

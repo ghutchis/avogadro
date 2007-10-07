@@ -1318,9 +1318,7 @@ void WiiMoteTool::cwiid_callback(cwiid_wiimote_t *wiimote, int mesg_count,
         break;
     }
   }
-  /**for (i=0; (i < CONF_MAX_PLUGINS) && conf.plugins[i].name; i++) {
-    process_plugin(&conf.plugins[i], mesg_count, mesg);
-  }**/
+  process_ir(mesg_count, mesg);
   send_event(m_conf, EV_SYN, SYN_REPORT, 0);
 }
 
@@ -1416,10 +1414,14 @@ void WiiMoteTool::connectClicked()
        "Put Wiimote in discoverable mode (Press 1+2) and press Ok.",
        tr("&Ok"), tr("&Cancel"), QString::null, 0 , 1) )
   {
-  } else 
+    //Cancelled
+    return;
+  }
+  else
   {
     ptO2Object = this;
     char reset_bdaddr = 0;
+
     if (bacmp(&bdaddr, BDADDR_ANY) == 0) {
       reset_bdaddr = 1;
     }
@@ -1427,26 +1429,28 @@ void WiiMoteTool::connectClicked()
     if ((wiimote = cwiid_open(&bdaddr, CWIID_FLAG_MESG_IFC)) == NULL) {
       QMessageBox::information(NULL, "Wii-Remote",
                                "Unable to connect to Wii-Remote.\nMake sure it is in discoverable mode.");
-    } 
-    //else if (cwiid_set_mesg_callback(wiimote, &Avogadro::WiiMoteTool::cwiid_callback)) {
-    else if (cwiid_set_mesg_callback(wiimote, &Avogadro::WiiMoteTool::cwiid_callback_wrapper)) {
-      QMessageBox::information( NULL, "Wii-Remote",
-    "Error setting callback.");
+    } else if (cwiid_set_mesg_callback(wiimote, &Avogadro::WiiMoteTool::cwiid_callback_wrapper)) {
+      QMessageBox::information( NULL, "Wii-Remote", "Error setting callback.");
 
-    if (cwiid_close(wiimote)) {
-    QMessageBox::information( NULL, "Wii-Remote",
-    "Error on disconnect.");
+      if (cwiid_close(wiimote)) {
+        QMessageBox::information( NULL, "Wii-Remote", "Error on disconnect.");
     }
     wiimote = NULL;
     }
-    else {
+    else
+    {
+      int request;
+      __u16 axis_type = 3;
+      __u16 actionX = 0;
+      __u16 actionY = 1;
+      __u16 actionZ = 2;
+
       //connected
       ui.m_buttonConnect->setText("Connected");
       ui.m_buttonConnect->setEnabled(false);
       ui.m_buttonDisconnect->setEnabled(true);
       if (cwiid_get_acc_cal(wiimote, CWIID_EXT_NONE, &wm_cal)) {
-        QMessageBox::information( NULL, "Wii-Remote",
-                                  "Unable to retrieve accelerometer.\n");
+        QMessageBox::information( NULL, "Wii-Remote", "Unable to retrieve accelerometer.\n");
       }
       ///// Thread for uinput 
       //m_uinputThread = new WiiMoteUInputThread(wiimote);
@@ -1467,42 +1471,82 @@ void WiiMoteTool::connectClicked()
         for (i=0; i < uinputfilenamecount; i++) {
           m_conf.fd = open(uinput_filename[i], O_RDWR);
           if (m_conf.fd >= 0)
+          {
             break;
+          }
         }
 
         if (m_conf.fd < 0) {
           cout << "Unable to open uinput" << endl;
+          return;
         }
 
         if (write(m_conf.fd, &m_conf.dev, sizeof m_conf.dev) != sizeof m_conf.dev) {
           cout << "error on uinput device setup" << endl;
           close(m_conf.fd);
+          return;
         }
 
         if (m_conf.ff) {
           if (ioctl(m_conf.fd, UI_SET_EVBIT, EV_FF) < 0) {
             cout << "error on uinput ioctl" << endl;
             close(m_conf.fd);
+            return;
           }
           if (ioctl(m_conf.fd, UI_SET_FFBIT, FF_RUMBLE) < 0) {
             cout << "error on uinput ioctl" << endl;
             close(m_conf.fd);
+            return;
           }
         }
-  
+
         if (ioctl(m_conf.fd, UI_SET_EVBIT, EV_KEY) < 0) {
           cout << "error on uinput ioctl";
           close(m_conf.fd);
-        } 
+          return;
+        }
 
       for (i=0; i < CONF_WM_BTN_COUNT; i++) {
         if (m_conf.wiimote_bmap[i].active) {
-          if (ioctl(m_conf.fd, UI_SET_KEYBIT, m_conf.wiimote_bmap[i].action)
-          < 0) {
+          if (ioctl(m_conf.fd, UI_SET_KEYBIT, m_conf.wiimote_bmap[i].action) < 0) {
             cout << "error on uinput ioctl";
             close(m_conf.fd);
+            return;
           }
-        } 
+        }
+      }
+
+      if (ioctl(m_conf.fd, UI_SET_EVBIT, axis_type) < 0) {
+        cout << "Error uinput ioctl";
+      }
+
+      request = (axis_type == EV_ABS) ? UI_SET_ABSBIT : UI_SET_RELBIT;
+      if (ioctl(m_conf.fd, request, actionX) < 0) {
+        cout << "Error uinput ioctl";
+      }
+
+      if (ioctl(m_conf.fd, request, actionY) < 0) {
+        cout << "Error uinput ioctl";
+      }
+
+      if ((axis_type == EV_ABS) && ((actionX == ABS_X) || (actionY == ABS_Y) || (actionZ == ABS_Z))) {
+        if (ioctl(m_conf.fd, UI_SET_EVBIT, EV_REL) < 0) {
+          cout << "error uinput ioctl";
+          close(m_conf.fd);
+          return;
+        }
+
+        if (ioctl(m_conf.fd, UI_SET_RELBIT, actionX) < 0) {
+          cout << "error uinput ioctl";
+          close(m_conf.fd);
+          return;
+        }
+
+        if (ioctl(m_conf.fd, UI_SET_RELBIT, actionY) < 0) {
+          cout << "error uinput ioctl";
+          close(m_conf.fd);
+          return;
+        }
       }
 
       if (ioctl(m_conf.fd, UI_DEV_CREATE) < 0) {
@@ -1510,15 +1554,212 @@ void WiiMoteTool::connectClicked()
         close(m_conf.fd);
       }
 
+      /**if (c_wiimote(wiimote)) {
+        //conf_unload(&m_conf);
+        cout << "Could not load plugin" << endl;
+      }**/
+
       set_report_mode();
       cwiid_request_status(wiimote);
 
-    }
 
    if (reset_bdaddr) { bdaddr = *BDADDR_ANY; }
 
-  } 
+  }
+  }
 }
+
+void WiiMoteTool::process_ir(int mesg_count, union cwiid_mesg mesg[])
+{
+  static union cwiid_mesg plugin_mesg[CWIID_MAX_MESG_COUNT];
+  int plugin_mesg_count = 0;
+  int i;
+  uint8_t flag;
+  uint16_t pressed, released;
+  __s32 axis_value;
+  unsigned char ir_axis_count = 2;
+
+  for (i=0; i < mesg_count; i++) {
+    switch (mesg[i].type) {
+      case CWIID_MESG_STATUS:
+        flag = CWIID_RPT_STATUS;
+        break;
+      case CWIID_MESG_BTN:
+        flag = CWIID_RPT_BTN;
+        break;
+      case CWIID_MESG_ACC:
+        flag = CWIID_RPT_ACC;
+        break;
+      case CWIID_MESG_IR:
+        flag = CWIID_RPT_IR;
+        break;
+      case CWIID_MESG_NUNCHUK:
+        flag = CWIID_RPT_NUNCHUK;
+        break;
+      case CWIID_MESG_CLASSIC:
+        flag = CWIID_RPT_CLASSIC;
+        break;
+      default:
+        break;
+    }
+    if (m_rpt_mode & flag) {
+      /* TODO: copy correct (smaller) message size */
+      memcpy(&plugin_mesg[plugin_mesg_count++], &mesg[i], sizeof mesg[i]);
+    }
+  }
+
+  if (plugin_mesg_count > 0) {
+    if (!(wmplugin_exec(mesg_count, mesg))) {
+      return;
+    }
+    
+    //switch (plugin->type) {
+      //case PLUGIN_C:
+        //if (c_plugin_exec(plugin, plugin_mesg_count, plugin_mesg)) {
+        //  return;
+        //}
+        //break;
+       /*
+      case PLUGIN_PYTHON:
+        if (py_plugin_exec(plugin, plugin_mesg_count, plugin_mesg)) {
+          return;
+        }
+        break;
+    //}
+
+    /* Plugin Button/Key Events 
+    
+    pressed = plugin->data->buttons & ~plugin->prev_buttons;
+    released = ~plugin->data->buttons & plugin->prev_buttons;
+    for (i=0; i < plugin->info->button_count; i++) {
+      if (plugin->bmap[i].active) {
+        if (pressed & 1<<i) {
+          send_event(&conf, EV_KEY, plugin->bmap[i].action, 1);
+        }
+        else if (released & 1<<i) {
+          send_event(&conf, EV_KEY, plugin->bmap[i].action, 0);
+        }
+      }
+    }
+    plugin->prev_buttons = plugin->data->buttons;
+    **/
+    /* Plugin Axis Events */
+    //for (i=0; i < ir_axis_count; i++) {
+     // if (m_data.axes && m_data.axes[i].valid) {
+       // axis_value = plugin->data->axes[i].value;
+        /*if (plugin->amap[i].flags & CONF_INVERT) {
+          axis_value = plugin->info->axis_info[i].max +
+              plugin->info->axis_info[i].min - axis_value;
+        }*/
+    __u16 type = 3;
+    __u16 actionX = 0;
+    __u16 actionY = 1;
+    //cout << m_data.axes[0].value << " " << m_data.axes[1].value << endl;
+    send_event(m_conf, type, actionX, m_data.axes[0].value);
+    send_event(m_conf, type, actionY, m_data.axes[1].value);
+         // }
+  }
+}
+
+struct wmplugin_data* WiiMoteTool::wmplugin_exec(int mesg_count, union cwiid_mesg mesg[])
+{
+  static int src_index = -1;
+  static int debounce = 0;
+  static uint8_t old_flag;
+
+  int i;
+  uint8_t flag;
+  struct cwiid_ir_mesg *ir_mesg;
+
+  ir_mesg = NULL;
+  
+  
+  for (i=0; i < mesg_count; i++) {
+    if (mesg[i].type == CWIID_MESG_IR) {
+      ir_mesg = &mesg[i].ir_mesg;
+    }
+  }
+
+  if (!ir_mesg) {
+    return NULL;
+  }
+
+  /* invalidate src index if source is no longer present */
+  if ((src_index != -1) && !ir_mesg->src[src_index].valid) {
+    if (debounce > DEBOUNCE_THRESHOLD) {
+      src_index = -1;
+    }
+    else {
+      debounce++;
+    }
+  }
+  else {
+    debounce = 0;
+  }
+
+  /* of not set, pick largest available source */
+  if (src_index == -1) {
+    for (i=0; i < CWIID_IR_SRC_COUNT; i++) {
+      if (ir_mesg->src[i].valid) {
+        if ((src_index == -1) ||
+             (ir_mesg->src[i].size > ir_mesg->src[src_index].size)) {
+          src_index = i;
+             }
+      }
+    }
+  }
+
+  /* LEDs */
+  switch (src_index) {
+    case 0:
+      flag = CWIID_LED1_ON;
+      break;
+    case 1:
+      flag = CWIID_LED2_ON;
+      break;
+    case 2:
+      flag = CWIID_LED3_ON;
+      break;
+    case 3:
+      flag = CWIID_LED4_ON;
+      break;
+    default:
+      flag = 0;
+      break;
+  }
+  if (flag != old_flag) {
+    cwiid_set_led(wiimote, flag);
+    old_flag = flag;
+  }
+
+  if ((src_index == -1) || !ir_mesg->src[src_index].valid) {
+    m_data.axes[0].valid = m_data.axes[1].valid = 0;
+  }
+  else {
+    //cout << "calculating m_data" << endl;
+    m_data.axes[0].valid = m_data.axes[1].valid = 1;
+    m_data.axes[0].value = NEW_AMOUNT * (CWIID_IR_X_MAX -
+        ir_mesg->src[src_index].pos[CWIID_X])
+        + OLD_AMOUNT * m_data.axes[0].value;
+    m_data.axes[1].value = NEW_AMOUNT * ir_mesg->src[src_index].pos[CWIID_Y]
+        + OLD_AMOUNT * m_data.axes[1].value;
+
+    if (m_data.axes[0].value > CWIID_IR_X_MAX - X_EDGE) {
+      m_data.axes[0].value = CWIID_IR_X_MAX - X_EDGE;
+    }
+    else if (m_data.axes[0].value < X_EDGE) {
+      m_data.axes[0].value = X_EDGE;
+    }
+    if (m_data.axes[1].value > CWIID_IR_Y_MAX - Y_EDGE) {
+      m_data.axes[1].value = CWIID_IR_Y_MAX - Y_EDGE;
+    }
+    else if (m_data.axes[1].value < Y_EDGE) {
+      m_data.axes[1].value = Y_EDGE;
+    }
+  }
+  return &m_data;
+}
+
 
 void WiiMoteTool::load_conf()
 {
@@ -1534,6 +1775,16 @@ void WiiMoteTool::load_conf()
     m_conf.dev.absfuzz[i] = -1;
     m_conf.dev.absflat[i] = -1;
   }
+  
+  m_conf.dev.absmax[0] = CWIID_IR_X_MAX - X_EDGE;
+  m_conf.dev.absmax[1] = CWIID_IR_Y_MAX - Y_EDGE;
+  m_conf.dev.absmin[0] = X_EDGE;
+  m_conf.dev.absmin[1] = Y_EDGE;
+  m_conf.dev.absfuzz[0] = 0;
+  m_conf.dev.absfuzz[1] = 0;
+  m_conf.dev.absflat[0] = 0;
+  m_conf.dev.absflat[1] = 0;
+
   for (int i=0; i < CONF_WM_BTN_COUNT; i++) {
     m_conf.wiimote_bmap[i].active = 0;
   }
@@ -1562,21 +1813,19 @@ void WiiMoteTool::load_conf()
 }
 
 void WiiMoteTool::set_report_mode()
-{
-  uint8_t rpt_mode;
-  
-  rpt_mode = CWIID_RPT_STATUS | CWIID_RPT_BTN;
+{ 
+  m_rpt_mode = CWIID_RPT_STATUS | CWIID_RPT_BTN;
 
   //if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(chkIR))) {
-    rpt_mode |= CWIID_RPT_IR;
+  m_rpt_mode |= CWIID_RPT_IR;
   //}
   //if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(chkAcc))) {
-    rpt_mode |= CWIID_RPT_ACC;
+  m_rpt_mode |= CWIID_RPT_ACC;
   /**}
   if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(chkExt))) {
     rpt_mode |= CWIID_RPT_EXT;
   }**/
-  if (cwiid_set_rpt_mode(wiimote, rpt_mode)) {
+  if (cwiid_set_rpt_mode(wiimote, m_rpt_mode)) {
     QMessageBox::information( NULL, "Wii-Remote",
                               "Error setting report mode.\n");
   }
