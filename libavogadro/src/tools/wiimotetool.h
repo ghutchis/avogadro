@@ -86,30 +86,6 @@ namespace Avogadro {
     struct wmplugin_axis axes[WMPLUGIN_MAX_AXIS_COUNT];
   };
 
-  class WiiMoteUInputThread: public QThread
-  {
-    Q_OBJECT;
-
-    public:
-      WiiMoteUInputThread(cwiid_wiimote_t *wiimote, QObject *parent=0);
-
-      void setEvent(input_event event);
-      int send_event(__u16 type, __u16 code, __s32 value);
-      void run();
-
-    Q_SIGNALS:
-      void stepsTaken(int steps);
-
-    public Q_SLOTS:
-      void stop();
-
-    private:
-      bool m_stop;
-      conf_st conf;
-      cwiid_wiimote_t* m_wiimote;
-      struct input_event m_event;
-  };
-  
   /**
    * @class WiiMoteTool
    * @brief Manipulation Tool using Wii-Mote
@@ -125,9 +101,9 @@ namespace Avogadro {
 
     public:
       //! Constructor
-          WiiMoteTool(QObject *parent = 0);
+      WiiMoteTool(QObject *parent = 0);
       //! Deconstructor
-          virtual ~WiiMoteTool();
+      virtual ~WiiMoteTool();
 
       //! \name Description methods
       //@{
@@ -199,10 +175,6 @@ namespace Avogadro {
       void disconnectClicked();
 
 
-      WiiMoteUInputThread *uinputThread() const;
-      void detach() const;
-      void cleanup();
-      
     protected:
       GLWidget *          m_glwidget;
       QWidget *           m_settingsWidget;
@@ -240,20 +212,14 @@ namespace Avogadro {
       QCheckBox *         m_snapToCheckBox;
       QSpinBox *          m_snapToAngleBox;
       QGridLayout *       m_layout;
-      
+
       /* Globals */
-      cwiid_wiimote_t *wiimote;// = NULL;
+      cwiid_wiimote_t *wiimote;
       conf_st m_conf;
       struct input_event m_event;
       struct wmplugin_data m_data;
       uint8_t m_rpt_mode;
-      WiiMoteUInputThread *m_uinputThread;
-      mutable bool m_detached;
-      //cwiid_mesg_callback_t cwiid_callback_;
 
-      //bdaddr_t bdaddr;
-      //struct acc_cal wm_cal, nc_cal;
-      //struct cwiid_ir_mesg ir_data;
       int send_event(struct conf_st conf, __u16 type, __u16 code, __s32 value);
       void send_btn_event(struct cwiid_btn_mesg *mesg);
       void cwiid_callback(cwiid_wiimote_t *wiimote, int mesg_count,
@@ -265,6 +231,8 @@ namespace Avogadro {
       void process_ir(int mesg_count, union cwiid_mesg mesg[]);
       void set_report_mode();
       void load_conf();
+      void cleanup();
+
       //! \name Construction Plane/Angles Methods
       //@{
       //! \brief Methods used to construct and draw the angle-sectors, the construction plane, and the rotation-sphere

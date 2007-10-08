@@ -110,8 +110,7 @@ WiiMoteTool::WiiMoteTool(QObject *parent) : Tool(parent),
 m_movedSinceButtonPressed(false),
                                                     m_showAngles(true),
                                                     m_snapToEnabled(true),
-                                                    m_snapToAngle(10),
-                                                    m_detached( false )
+                                                    m_snapToAngle(10)
 {
   QAction *action = activateAction();
   action->setIcon(QIcon(QString::fromUtf8(":/wiimote/wiimote.png")));
@@ -123,8 +122,6 @@ m_movedSinceButtonPressed(false),
         "- Left Click & Drag one of the Atoms in the Bond to change the angle\n"
         "- Right Click & Drag one of the Atoms in the Bond to change the length"));
   //action->setShortcut(Qt::Key_F9);
-  //&Avogadro::WiiMoteTool::cwiid_callback_ = &Avogadro::WiiMoteTool::cwiid_callback;
-  //wiimote = NULL;
 }
 
 // ##########  Desctructor  ##########
@@ -136,14 +133,6 @@ WiiMoteTool::~WiiMoteTool()
   delete m_currentReference;
   m_currentReference = NULL;
 
-  if ( !m_detached ) {
-    if ( m_uinputThread->isRunning() ) {
-      m_uinputThread->stop();
-      m_uinputThread->wait();
-    }
-    delete m_uinputThread;
-  }
-  
   if (m_settingsWidget)
   {
     m_snapToAngleLabel->deleteLater();
@@ -1440,7 +1429,7 @@ void WiiMoteTool::connectClicked()
     else
     {
       int request;
-      __u16 axis_type = 3;
+      __u16 m_axisType = 3;
       __u16 actionX = 0;
       __u16 actionY = 1;
       __u16 actionZ = 2;
@@ -1452,9 +1441,6 @@ void WiiMoteTool::connectClicked()
       if (cwiid_get_acc_cal(wiimote, CWIID_EXT_NONE, &wm_cal)) {
         QMessageBox::information( NULL, "Wii-Remote", "Unable to retrieve accelerometer.\n");
       }
-      ///// Thread for uinput 
-      //m_uinputThread = new WiiMoteUInputThread(wiimote);
-      //m_uinputThread->start();
 
       load_conf();
 
@@ -1516,11 +1502,11 @@ void WiiMoteTool::connectClicked()
         }
       }
 
-      if (ioctl(m_conf.fd, UI_SET_EVBIT, axis_type) < 0) {
+      if (ioctl(m_conf.fd, UI_SET_EVBIT, m_axisType) < 0) {
         cout << "Error uinput ioctl";
       }
 
-      request = (axis_type == EV_ABS) ? UI_SET_ABSBIT : UI_SET_RELBIT;
+      request = (m_axisType == EV_ABS) ? UI_SET_ABSBIT : UI_SET_RELBIT;
       if (ioctl(m_conf.fd, request, actionX) < 0) {
         cout << "Error uinput ioctl";
       }
@@ -1529,7 +1515,7 @@ void WiiMoteTool::connectClicked()
         cout << "Error uinput ioctl";
       }
 
-      if ((axis_type == EV_ABS) && ((actionX == ABS_X) || (actionY == ABS_Y) || (actionZ == ABS_Z))) {
+      if ((m_axisType == EV_ABS) && ((actionX == ABS_X) || (actionY == ABS_Y) || (actionZ == ABS_Z))) {
         if (ioctl(m_conf.fd, UI_SET_EVBIT, EV_REL) < 0) {
           cout << "error uinput ioctl";
           close(m_conf.fd);
@@ -1554,11 +1540,6 @@ void WiiMoteTool::connectClicked()
         close(m_conf.fd);
       }
 
-      /**if (c_wiimote(wiimote)) {
-        //conf_unload(&m_conf);
-        cout << "Could not load plugin" << endl;
-      }**/
-
       set_report_mode();
       cwiid_request_status(wiimote);
 
@@ -1571,13 +1552,10 @@ void WiiMoteTool::connectClicked()
 
 void WiiMoteTool::process_ir(int mesg_count, union cwiid_mesg mesg[])
 {
-  static union cwiid_mesg plugin_mesg[CWIID_MAX_MESG_COUNT];
-  int plugin_mesg_count = 0;
+  static union cwiid_mesg irMessage[CWIID_MAX_MESG_COUNT];
+  int irMessageCount = 0;
   int i;
   uint8_t flag;
-  uint16_t pressed, released;
-  __s32 axis_value;
-  unsigned char ir_axis_count = 2;
 
   for (i=0; i < mesg_count; i++) {
     switch (mesg[i].type) {
@@ -1604,60 +1582,17 @@ void WiiMoteTool::process_ir(int mesg_count, union cwiid_mesg mesg[])
     }
     if (m_rpt_mode & flag) {
       /* TODO: copy correct (smaller) message size */
-      memcpy(&plugin_mesg[plugin_mesg_count++], &mesg[i], sizeof mesg[i]);
+      memcpy(&irMessage[irMessageCount++], &mesg[i], sizeof mesg[i]);
     }
   }
 
-  if (plugin_mesg_count > 0) {
+  if (irMessageCount > 0) {
     if (!(wmplugin_exec(mesg_count, mesg))) {
       return;
     }
-    
-    //switch (plugin->type) {
-      //case PLUGIN_C:
-        //if (c_plugin_exec(plugin, plugin_mesg_count, plugin_mesg)) {
-        //  return;
-        //}
-        //break;
-       /*
-      case PLUGIN_PYTHON:
-        if (py_plugin_exec(plugin, plugin_mesg_count, plugin_mesg)) {
-          return;
-        }
-        break;
-    //}
 
-    /* Plugin Button/Key Events 
-    
-    pressed = plugin->data->buttons & ~plugin->prev_buttons;
-    released = ~plugin->data->buttons & plugin->prev_buttons;
-    for (i=0; i < plugin->info->button_count; i++) {
-      if (plugin->bmap[i].active) {
-        if (pressed & 1<<i) {
-          send_event(&conf, EV_KEY, plugin->bmap[i].action, 1);
-        }
-        else if (released & 1<<i) {
-          send_event(&conf, EV_KEY, plugin->bmap[i].action, 0);
-        }
-      }
-    }
-    plugin->prev_buttons = plugin->data->buttons;
-    **/
-    /* Plugin Axis Events */
-    //for (i=0; i < ir_axis_count; i++) {
-     // if (m_data.axes && m_data.axes[i].valid) {
-       // axis_value = plugin->data->axes[i].value;
-        /*if (plugin->amap[i].flags & CONF_INVERT) {
-          axis_value = plugin->info->axis_info[i].max +
-              plugin->info->axis_info[i].min - axis_value;
-        }*/
-    __u16 type = 3;
-    __u16 actionX = 0;
-    __u16 actionY = 1;
-    //cout << m_data.axes[0].value << " " << m_data.axes[1].value << endl;
-    send_event(m_conf, type, actionX, m_data.axes[0].value);
-    send_event(m_conf, type, actionY, m_data.axes[1].value);
-         // }
+    send_event(m_conf, EV_ABS, ABS_X, m_data.axes[0].value);
+    send_event(m_conf, EV_ABS, ABS_Y, m_data.axes[1].value);
   }
 }
 
@@ -1672,8 +1607,7 @@ struct wmplugin_data* WiiMoteTool::wmplugin_exec(int mesg_count, union cwiid_mes
   struct cwiid_ir_mesg *ir_mesg;
 
   ir_mesg = NULL;
-  
-  
+
   for (i=0; i < mesg_count; i++) {
     if (mesg[i].type == CWIID_MESG_IR) {
       ir_mesg = &mesg[i].ir_mesg;
@@ -1815,13 +1749,9 @@ void WiiMoteTool::load_conf()
 void WiiMoteTool::set_report_mode()
 { 
   m_rpt_mode = CWIID_RPT_STATUS | CWIID_RPT_BTN;
-
-  //if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(chkIR))) {
   m_rpt_mode |= CWIID_RPT_IR;
-  //}
-  //if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(chkAcc))) {
   m_rpt_mode |= CWIID_RPT_ACC;
-  /**}
+  /*
   if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(chkExt))) {
     rpt_mode |= CWIID_RPT_EXT;
   }**/
@@ -1837,36 +1767,15 @@ void WiiMoteTool::disconnectClicked()
         QMessageBox::information(NULL, "Wii-Remote",
                                  "Error on disconnect.\n");
   }
-  
   cleanup();
-  
-  wiimote = NULL;
   ui.m_buttonConnect->setText("Connect");
   ui.m_buttonConnect->setEnabled(true);
   ui.m_buttonDisconnect->setEnabled(false);
-  //clear_widgets();
-  //set_gui_state();
-}
-
-void WiiMoteTool::detach() const
-{
-  m_detached = true;
-}
-
-WiiMoteUInputThread *WiiMoteTool::uinputThread() const
-{
-  return m_uinputThread;
 }
 
 void WiiMoteTool::cleanup()
 {
-  if ( !m_detached ) {
-    if ( m_uinputThread->isRunning() ) {
-      m_uinputThread->stop();
-      m_uinputThread->wait();
-    }
-    delete m_uinputThread;
-  }
+  close(m_conf.fd);
 }
 
 // ##########  settingsWidget  ##########
@@ -1901,154 +1810,6 @@ void WiiMoteTool::settingsWidgetDestroyed() {
   m_settingsWidget = 0;
 }
 
-// #########################  WiiMoteUInputThread  #########################
-WiiMoteUInputThread::WiiMoteUInputThread(cwiid_wiimote_t *wiimote, QObject *parent ) : 
-    QThread( parent )
-{
-  m_stop = false;
-  /* UInput */
-  char *uinput_filename[] = {"/dev/uinput", "/dev/input/uinput",
-    "/dev/misc/uinput"};
-  int uinputfilenamecount = 3;
-
-  int i;
-  int j;
-  int request;
-  
-  /* Open uinput device */
-  for (i=0; i < uinputfilenamecount; i++) {
-    conf.fd = open(uinput_filename[i], O_RDWR);
-    if (conf.fd >= 0)
-      break;
-  }
-  
-  if (conf.fd < 0) {
-    cout << "Unable to open uinput" << endl;
-  }
-
-  if (write(conf.fd, &conf.dev, sizeof conf.dev) != sizeof conf.dev) {
-    cout << "error on uinput device setup" << endl;
-    close(conf.fd);
-  }
-  
-  if (conf.ff) {
-    if (ioctl(conf.fd, UI_SET_EVBIT, EV_FF) < 0) {
-      cout << "error on uinput ioctl" << endl;
-      close(conf.fd);
-    }
-    if (ioctl(conf.fd, UI_SET_FFBIT, FF_RUMBLE) < 0) {
-      cout << "error on uinput ioctl" << endl;
-      close(conf.fd);
-    }
-  }
-  
-  if (ioctl(conf.fd, UI_SET_EVBIT, EV_KEY) < 0) {
-    cout << "error on uinput ioctl";
-    close(conf.fd);
-  } 
-  /**
-#define CONF_WM_BTN_COUNT 11
-  for (i=0; i < CONF_WM_BTN_COUNT; i++) {
-    //if (conf->wiimote_bmap[i].active) {
-      if (ioctl(conf.fd, UI_SET_KEYBIT, conf.wiimote_bmap[i].action)
-          < 0) {
-        wminput_err("error on uinput ioctl");
-        close(conf->fd);
-        return -1;
-          }
-    //}     
-  }**/
-  
-  
-  if (ioctl(conf.fd, UI_DEV_CREATE) < 0) {
-    cout << "Error on uinput dev create";
-    close(conf.fd);
-  }
-
-
-}
-
-int WiiMoteUInputThread::send_event(__u16 type, __u16 code, __s32 value)
-{
-  struct input_event event;
-
-  memset(&event, 0, sizeof(event));
-  event.type = type;
-  event.code = code;
-  event.value = value;
-  
-  if (write(conf.fd, &event, sizeof(event)) != sizeof(event)) {
-    cout << "Error on send_event" << endl;
-    return -1;
-  }
-
-  return 0;
-}
-
-void WiiMoteUInputThread::run()
-{
-  /**
-  //thread body
-  size_t len;
-  struct input_event event;
-  struct uinput_ff_upload upload;
-  struct uinput_ff_erase erase;
-
-  do {
-    if ((len = read(conf.fd, &m_event, sizeof m_event)) !=
-         sizeof m_event) {
-      cout << "Error on WiiMoteUInputThread read" << endl;
-      continue;
-         }
-
-         switch (m_event.type) {
-           case EV_UINPUT:
-             switch (m_event.code) {
-               case UI_FF_UPLOAD:
-                 erase.request_id = m_event.value;
-                 if (ioctl(conf.fd, UI_BEGIN_FF_UPLOAD, &upload) < 0) {
-                   cout << "Error on ff upload begin" << endl;
-                 }
-                 if (cwiid_set_rumble(m_wiimote, 1)) {
-                   cout << "Error setting rumble" << endl;
-                 }
-                 if (ioctl(conf.fd, UI_END_FF_UPLOAD, &upload) < 0) {
-                   cout << "Error on ff upload end" << endl;
-                 }
-                 break;
-               case UI_FF_ERASE:
-                 erase.request_id = event.value;
-                 if (ioctl(conf.fd, UI_BEGIN_FF_ERASE, &erase) < 0) {
-                   cout << "Error on ff erase begin" << endl;
-                 }
-                 if (cwiid_set_rumble(m_wiimote, 0)) {
-                   cout << "Error clearing rumble" << endl;
-                 }
-                 if (ioctl(conf.fd, UI_END_FF_ERASE, &erase) < 0) {
-                   cout << "Error on ff erase end" << endl;
-                 }
-                 break;
-               default:
-                 break;
-             }
-             break;
-           default:
-             break;
-         }
-  } while (-1);
-  //emit stepsTaken(..) to emit a signal
-  **/
-}
-
-void WiiMoteUInputThread::setEvent(input_event event)
-{
-  m_event = event;
-}
-
-void WiiMoteUInputThread::stop()
-{
-  m_stop = true;
-}
 // #########################  WiiMoteMoveCommand  ##########################
 
 // ##########  Constructor  ##########
