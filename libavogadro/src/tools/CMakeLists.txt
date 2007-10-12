@@ -64,7 +64,7 @@ set(CWIID_LIBRARIES /usr/local/lib/libcwiid.so)
 qt4_wrap_ui(wiimotetool_UIS_H wiimotetool.ui)
 qt4_add_resources(wiimotetool_RC_SRCS wiimotetool.qrc)
 qt4_automoc(${wiimotetool_SRCS})
-ADD_LIBRARY(wiimotetool SHARED skeletontree.cpp quaternion.cpp navigate.cpp
+ADD_LIBRARY(wiimotetool SHARED drawcommand.cpp skeletontree.cpp quaternion.cpp navigate.cpp
                             ${wiimotetool_SRCS} ${wiimotetool_RC_SRCS} ${wiimotetool_UIS_H}
                             )
 TARGET_LINK_LIBRARIES(wiimotetool

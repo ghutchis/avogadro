@@ -3,6 +3,8 @@
 
   Copyright (C) 2007 by Shahzad Ali
 
+  Parts in this file have been used from cwiid project.
+
   This file is part of the Avogadro molecular editor project.
   For more information, see <http://avogadro.sourceforge.net/>
 
@@ -32,6 +34,9 @@
 #define isnan(x) _isnan(x)
 #endif
 
+#include "drawcommand.h"
+#include <avogadro/undosequence.h>
+
 #include <avogadro/primitive.h>
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
@@ -40,6 +45,7 @@
 
 #include <openbabel/obiter.h>
 #include <openbabel/mol.h>
+#include <openbabel/forcefield.h>
 
 #include <QtPlugin>
 #include <QString>
@@ -59,14 +65,6 @@
 #include <bluetooth/bluetooth.h>
 #include "cwiid.h"
 
-/**
-#include "conf.h"
-#include "util.h"
-#include "wmplugin.h"
-#include "c_plugin.h"
-#include "py_plugin.h"
-**/
-
 using namespace std;
 using namespace OpenBabel;
 using namespace Avogadro;
@@ -85,11 +83,7 @@ struct stick {
 //cwiid_mesg_callback_t cwiid_callback;
 
 bdaddr_t bdaddr;
-struct acc_cal wm_cal, nc_cal;
-struct cwiid_ir_mesg ir_data;
-struct stick nc_stick;
-struct stick cc_l_stick, cc_r_stick;
-//struct conf conf;
+//struct m_accCalibration wm_cal, nc_cal;
 
 // ##########  Constructor  ##########
 
@@ -110,7 +104,17 @@ WiiMoteTool::WiiMoteTool(QObject *parent) : Tool(parent),
 m_movedSinceButtonPressed(false),
                                                     m_showAngles(true),
                                                     m_snapToEnabled(true),
-                                                    m_snapToAngle(10)
+                                                    m_snapToAngle(10),
+                                                    m_editMode(true),
+                                                    m_beginAtomAdded(false),
+                                                    m_beginAtom(0),
+                                                    m_endAtom(0),
+                                                    m_element(6),
+                                                    m_bond(0),
+                                                    m_prevBond(0),
+                                                    m_prevAtomElement(0),
+                                                    m_block(false),
+                                                    m_glwidget(NULL)
 {
   QAction *action = activateAction();
   action->setIcon(QIcon(QString::fromUtf8(":/wiimote/wiimote.png")));
@@ -121,6 +125,7 @@ m_movedSinceButtonPressed(false),
         "Left Click & drag on a Bond to set the Manipulation Plane:\n"
         "- Left Click & Drag one of the Atoms in the Bond to change the angle\n"
         "- Right Click & Drag one of the Atoms in the Bond to change the length"));
+  m_forceField = OBForceField::FindForceField( "Ghemical" );
   //action->setShortcut(Qt::Key_F9);
 }
 
@@ -236,12 +241,12 @@ QUndoCommand* WiiMoteTool::mousePress(GLWidget *widget, const QMouseEvent
     moleculeChanged(NULL, m_glwidget->molecule());
     connectToolGroup(widget, m_toolGroup);
   }
-
+  m_glwidget = widget;
   m_undo = 0;
 
   m_lastDraggingPosition = event->pos();
   m_movedSinceButtonPressed = false;
-
+  _buttons = event->buttons();
 #ifdef Q_WS_MAC
   m_leftButtonPressed = (event->buttons() & Qt::LeftButton
                          && event->modifiers() == Qt::NoModifier);
@@ -260,7 +265,49 @@ event->modifiers()
   m_midButtonPressed = (event->buttons() & Qt::MidButton);
   m_rightButtonPressed = (event->buttons() & Qt::RightButton);
 #endif
+////////////
+  if (m_leftButtonPressed & m_rightButtonPressed)
+    m_lastRollMovePosition = m_roll;
+/////////////
 
+  if (m_editMode)
+  {
+    m_initialDragginggPosition = event->pos();
+  //! List of hits from a selection/pick
+    m_hits = widget->hits(event->pos().x()-SEL_BOX_HALF_SIZE,
+                          event->pos().y()-SEL_BOX_HALF_SIZE,
+                                     SEL_BOX_SIZE,
+                                     SEL_BOX_SIZE);
+
+    if(m_leftButtonPressed)
+    {
+      if (m_hits.size()>0)
+      {
+        if (m_hits[0].type() == Primitive::AtomType)
+        {
+      // "alchemy" -- change this atom to a new element
+      // Make sure we call BeginModify / EndModify (e.g., PR#1720879)
+        widget->molecule()->BeginModify();
+        m_beginAtom = (Atom *)widget->molecule()->GetAtom(m_hits[0].name());
+        m_prevAtomElement = m_beginAtom->GetAtomicNum();
+        m_beginAtom->SetAtomicNum(m_element);
+        widget->molecule()->EndModify();
+        m_beginAtom->update(); // Make sure to call for a repaint(#1741653).
+      // FIXME: This should really be something we can undo
+        }
+      }
+      else
+      {
+        m_beginAtom = newAtom(widget, event->pos());
+        m_beginAtomAdded = true;
+        widget->updateGeometry();
+        m_beginAtom->update();
+      }
+    }
+    return 0;
+  }
+
+/////////////
   m_clickedAtom = NULL;
   m_clickedBond = NULL;
 
@@ -294,6 +341,8 @@ m_glwidget->molecule());
     // changed).
     if (m_leftButtonPressed)
     {
+      rollCalibrationVal = 0;
+
       m_selectedBond = m_clickedBond;
 
       if ((int)m_selectedBond->GetIdx() != oldName)
@@ -355,8 +404,14 @@ Vector3d(B);
 
 // ##########  mouseRelease  ##########
 
-QUndoCommand* WiiMoteTool::mouseRelease(GLWidget *widget, const QMouseEvent*)
+QUndoCommand* WiiMoteTool::mouseRelease(GLWidget *widget, const QMouseEvent* event)
 {
+
+  if (m_editMode)
+  {
+    m_undo = editModeMouseRelease(widget, event);
+  }
+
   if (!m_clickedAtom && !m_clickedBond && !m_movedSinceButtonPressed)
   {
     delete m_referencePoint;
@@ -387,6 +442,133 @@ QUndoCommand* WiiMoteTool::mouseRelease(GLWidget *widget, const QMouseEvent*)
   return m_undo;
 }
 
+QUndoCommand* WiiMoteTool::editModeMouseRelease(GLWidget *widget, const QMouseEvent* event)
+{
+  QUndoCommand *undo = 0;
+
+  if(_buttons & Qt::LeftButton)
+  {
+    // we can have a beginAtom w/out bond or endAtom
+    // we can hava bond w/out endAtom
+    // we cannot have endAtom w/out bond
+    // i go through a lot of testing to make the text look prettier and save memory.
+    if(m_beginAtomAdded || m_bond)
+    {
+      AddAtomDrawCommand *beginAtomDrawCommand = 0;
+      if(m_beginAtomAdded) {
+        beginAtomDrawCommand = new AddAtomDrawCommand(widget->molecule(), m_beginAtom);
+        beginAtomDrawCommand->setText(tr("Draw Atom"));
+      }
+
+      AddAtomDrawCommand *endAtomDrawCommand = 0;
+      if(m_endAtom) {
+        endAtomDrawCommand = new AddAtomDrawCommand(widget->molecule(), m_endAtom);
+        endAtomDrawCommand->setText(tr("Draw Atom"));
+      }
+
+      AddBondDrawCommand *bondCommand = 0;
+      if(m_bond) {
+        bondCommand = new AddBondDrawCommand(widget->molecule(), m_bond);
+        bondCommand->setText(tr("Draw Bond"));
+      }
+
+      if(endAtomDrawCommand || (bondCommand && beginAtomDrawCommand))
+      {
+        UndoSequence *seq = new UndoSequence();
+        seq->setText(tr("Draw"));
+
+        if(beginAtomDrawCommand) {
+          seq->append(beginAtomDrawCommand);
+        }
+        if(endAtomDrawCommand) {
+          seq->append(endAtomDrawCommand);
+        }
+        seq->append(bondCommand);
+        undo = seq;
+      }
+      else if(bondCommand)
+      {
+        undo = bondCommand;
+      }
+      else
+      {
+        undo = beginAtomDrawCommand;
+      }
+    }
+
+    m_beginAtom=0;
+    m_bond=0;
+    m_endAtom=0;
+    m_prevBond=0;
+    m_prevBondOrder=0;
+    m_prevAtomElement=0;
+    m_beginAtomAdded=false;
+
+    // create the undo action for creating endAtom and bond
+    //  pass along atom idx, element, vector, bond idx, order, start/end
+  }
+#ifdef Q_WS_MAC
+  // On the Mac, either use a three-button mouse
+  // or hold down the Command key (ControlModifier in Qt notation)
+  else if( (_buttons & Qt::RightButton) ||
+            ((_buttons & Qt::LeftButton) && (event->modifiers() == Qt::ControlModifier)) )
+#else
+  // Every other platform, use a three-button mouse
+    else if(_buttons & Qt::RightButton)
+#endif
+  {
+    m_hits = widget->hits(event->pos().x()-SEL_BOX_HALF_SIZE,
+                          event->pos().y()-SEL_BOX_HALF_SIZE,
+                                     SEL_BOX_SIZE,
+                                     SEL_BOX_SIZE);
+    if(m_hits.size())
+    {
+      qDebug() << m_hits[0].name() << " -- " << m_hits[0].type();
+
+      qDebug() << "bondtype -- " << Primitive::BondType;
+      // get our top hit
+      if(m_hits[0].type() == Primitive::AtomType)
+      {
+        undo = new DeleteAtomDrawCommand(widget->molecule(), m_hits[0].name());
+//         molecule->DeleteAtom(atom);
+//         widget->updateGeometry();
+//         molecule->update();
+      }
+      if(m_hits[0].type() == Primitive::BondType)
+      {
+        qDebug() << m_hits[0].name();
+        undo = new DeleteBondDrawCommand(widget->molecule(), m_hits[0].name());
+//         molecule->DeleteAtom(atom);
+//         widget->updateGeometry();
+//         molecule->update();
+      }
+    }
+  }
+
+  return undo;
+}
+
+void WiiMoteTool::translate(GLWidget *widget, const Eigen::Vector3d &what, const QPoint &from, const QPoint &to) const
+{
+  // Translate the selected atoms in the x and y sense of the view
+  //WiiMoteMoveAtomCommand *cmd  = 0;
+  //to.setY(10);
+  Vector3d fromPos = widget->camera()->unProject(from, what);
+  Vector3d toPos = widget->camera()->unProject(to, what);
+
+  MatrixP3d atomTranslation;
+  atomTranslation.loadTranslation(toPos - fromPos);
+
+  if (m_clickedAtom)
+  {
+    widget->molecule()->BeginModify();
+    m_clickedAtom->setPos(atomTranslation * m_clickedAtom->pos());
+    widget->molecule()->EndModify();
+    m_clickedAtom->update();
+  }
+  //delete newTo;
+}
+
 // ##########  mouseMove  ##########
 
 QUndoCommand* WiiMoteTool::mouseMove(GLWidget *widget, const QMouseEvent *event)
@@ -396,233 +578,296 @@ QUndoCommand* WiiMoteTool::mouseMove(GLWidget *widget, const QMouseEvent *event)
     return 0;
   }
 
+  if (m_editMode)
+    return editModeMouseMove(m_glwidget, event);
+  //m_undo = new WiiMoteMoveAtomCommand(widget->molecule());
+
+  // Get the currently selected atoms from the view
+  QList<Primitive *> currentSelection = m_glwidget->selectedPrimitives();
+
   QPoint deltaDragging = event->pos() - m_lastDraggingPosition;
 
-  if ((event->pos() - m_lastDraggingPosition).manhattanLength() > 2) {
-    m_movedSinceButtonPressed = true;
+  // Manipulation can be performed in two ways - centred on an individual atom
+  if (m_clickedAtom)
+  {
+      if (m_leftButtonPressed && !m_rightButtonPressed)
+      {
+      // translate the molecule following mouse movement
+      QPoint newTo;
+      QPoint to = event->pos();
+      newTo.setX(to.x());
+      newTo.setY(m_lastDraggingPosition.y());
+      translate(m_glwidget, m_clickedAtom->pos(), m_lastDraggingPosition, newTo);
+      }
+      else if (event->buttons() & Qt::MidButton)
+      {
+      /**
+      if (deltaDragging.y() == 0)
+        // Perform the rotation
+        tilt(widget, m_clickedAtom->pos(), deltaDragging.x());
+      else
+        // Perform the zoom toward clicked atom
+        zoom(widget, m_clickedAtom->pos(), deltaDragging.y());
+      **/
+      }
+      else if (!m_leftButtonPressed && m_rightButtonPressed )
+      {
+      // translate the molecule following mouse movement
+        QPoint newTo;
+        QPoint to = event->pos();
+        newTo.setX(m_lastDraggingPosition.x());
+        newTo.setY(to.y());
+        translate(m_glwidget, m_clickedAtom->pos(), m_lastDraggingPosition, newTo);
+      }
+  }
+  else if (!m_clickedAtom)
+  {
+    // rotation around the center of the molecule
+    Navigate::rotate(m_glwidget, m_glwidget->center(), deltaDragging.x(), deltaDragging.y());
   }
 
-  // Mouse navigation has two modes - atom centred when an atom is clicked
-  // and scene if no atom has been clicked.
+  m_lastDraggingPosition = event->pos();
+  widget->update();
 
-#ifdef Q_WS_MAC
-  if (event->buttons() & Qt::LeftButton && event->modifiers() == Qt::NoModifier)
-#else
-  if (event->buttons() & Qt::LeftButton)
-#endif
+  return 0;
+}
+
+QUndoCommand* WiiMoteTool::editModeMouseMove(GLWidget *widget, const QMouseEvent *event)
+{
+  Molecule *molecule = widget->molecule();
+  if(!molecule) {
+    return 0;
+  }
+
+  if((_buttons & Qt::LeftButton) && m_beginAtom)
   {
-    if (m_clickedBond && m_selectedBond && m_referencePoint)
+    m_hits = widget->hits(event->pos().x()-SEL_BOX_HALF_SIZE,
+                          event->pos().y()-SEL_BOX_HALF_SIZE,
+                                     SEL_BOX_SIZE,
+                                     SEL_BOX_SIZE);
+
+    bool hitBeginAtom = false;
+    Atom *existingAtom = 0;
+    if(m_hits.size())
     {
-      Atom *beginAtom = static_cast<Atom*>(m_selectedBond->GetBeginAtom());
-      Atom *endAtom = static_cast<Atom*>(m_selectedBond->GetEndAtom());
-
-      Vector3d rotationVector = beginAtom->pos() - endAtom->pos();
-      rotationVector = rotationVector / rotationVector.norm();
-
-      Vector3d begin = widget->camera()->project(beginAtom->pos());
-      Vector3d end = widget->camera()->project(endAtom->pos());
-
-      Vector3d zAxis = Vector3d(0, 0, 1);
-      Vector3d beginToEnd = end - begin;
-      beginToEnd -= Vector3d(0, 0, beginToEnd.z());
-
-      Vector3d direction = zAxis.cross(beginToEnd);
-      direction = direction / direction.norm();
-
-      Vector3d mouseMoved = Vector3d( - deltaDragging.x(), - deltaDragging.y(),
-0);
-
-      double magnitude = mouseMoved.dot(direction) / direction.norm();
-
-      *m_referencePoint = performRotation(magnitude * (M_PI / 180.0),
-                                          rotationVector, Vector3d(0, 0, 0),
-                                          *m_referencePoint);
-
-      Eigen::Vector3d *reference = calculateSnapTo(widget, m_selectedBond,
-                                          m_referencePoint, m_snapToAngle);
-      if (reference && m_snapToEnabled)
+      // parse our hits.  we want to know
+      // if we hit another existingAtom that is not
+      // the m_endAtom which we created
+      for(int i=0; i < m_hits.size() && !hitBeginAtom; i++)
       {
-        m_snapped = true;
-        delete m_currentReference;
-        m_currentReference = reference;
-        *m_currentReference = m_currentReference->normalized();
-      }
-      else
-      {
-        m_snapped = false;
-        delete m_currentReference;
-        m_currentReference = new Vector3d(*m_referencePoint);
-      }
-    }
-    else if (isAtomInBond(m_clickedAtom, m_selectedBond))
-    {
-      //Do atom rotation.
-      Atom *otherAtom;
-
-      if (m_clickedAtom == static_cast<Atom*>(m_selectedBond->GetBeginAtom()))
-        otherAtom = static_cast<Atom*>(m_selectedBond->GetEndAtom());
-      else
-        otherAtom = static_cast<Atom*>(m_selectedBond->GetBeginAtom());
-
-      Vector3d center = otherAtom->pos();
-      Vector3d clicked = m_clickedAtom->pos();
-
-      Vector3d centerProj = widget->camera()->project(center);
-      centerProj -= Vector3d(0,0,centerProj.z());
-      Vector3d clickedProj = widget->camera()->project(clicked);
-      clickedProj -= Vector3d(0,0,clickedProj.z());
-      Vector3d referenceProj = widget->camera()->project(*m_currentReference +
-center);
-      referenceProj -= Vector3d(0,0,referenceProj.z());
-
-      Vector3d referenceVector = referenceProj - centerProj;
-      referenceVector = referenceVector.normalized();
-
-      Vector3d directionVector = clickedProj - centerProj;
-      directionVector = directionVector.normalized();
-
-      Vector3d rotationVector = referenceVector.cross(directionVector);
-      rotationVector = rotationVector.normalized();
-
-      Vector3d currMouseVector = Vector3d(event->pos().x(), event->pos().y(), 0)
-                                  - centerProj;
-      if(currMouseVector.norm() > 5)
-      {
-        currMouseVector = currMouseVector.normalized();
-        double mouseAngle = acos(directionVector.dot(currMouseVector) /
-                            currMouseVector.norm2());
-
-        if(mouseAngle > 0)
+        if(m_hits[i].type() == Primitive::AtomType)
         {
-          Vector3d tester;
-
-          tester = performRotation(mouseAngle, rotationVector, Vector3d(0, 0,
-0),
-                                   directionVector);
-          double testAngle1 = acos(tester.dot(currMouseVector) /
-                                   currMouseVector.norm2());
-
-          tester = performRotation(-mouseAngle, rotationVector, Vector3d(0, 0,
-0),
-                                   directionVector);
-          double testAngle2 = acos(tester.dot(currMouseVector) /
-                                   currMouseVector.norm2());
-
-          if(testAngle1 > testAngle2 || isnan(testAngle2)) {
-            mouseAngle = -mouseAngle;
-          }
-
-          Vector3d direction = clicked - center;
-          if (m_skeleton)
+          // hit the same atom either moved here from somewhere else
+          // or were already here.
+          if(m_hits[i].name() == m_beginAtom->GetIdx())
           {
-            Vector3d currCrossDir =
-m_currentReference->cross(direction).normalized();
-
-            m_skeleton->skeletonRotate(mouseAngle, currCrossDir, center);
-            *m_referencePoint = performRotation(mouseAngle, currCrossDir,
-                                Vector3d(0, 0, 0), *m_referencePoint);
-            *m_currentReference = performRotation(mouseAngle, currCrossDir,
-                                  Vector3d(0, 0, 0), *m_currentReference);
+            hitBeginAtom = true;
+          }
+          else if(!m_endAtom)
+          {
+            existingAtom = (Atom *)molecule->GetAtom(m_hits[i].name());
+          }
+          else
+          {
+            if(m_hits[i].name() != m_endAtom->GetIdx())
+            {
+              existingAtom = (Atom *)molecule->GetAtom(m_hits[i].name());
+            }
           }
         }
       }
     }
-    else {
-      // rotation around the center of the molecule
-      Navigate::rotate(m_glwidget, m_glwidget->center(), deltaDragging.x(),
-deltaDragging.y());
-    }
-  }
-#ifdef Q_WS_MAC
-  // On the Mac, either use a three-button mouse
-  // or hold down the Option key (AltModifier in Qt notation)
-  else if ((event->buttons() & Qt::MidButton) || (event->buttons() &
-           Qt::LeftButton && event->modifiers() & Qt::AltModifier))
-#else
-  else if (event->buttons() & Qt::MidButton)
-#endif
-  {
-    if (m_clickedAtom)
+    if(hitBeginAtom)
     {
-      // Perform the rotation
-      Navigate::tilt(m_glwidget, m_clickedAtom->pos(), deltaDragging.x());
-
-      // Perform the zoom toward the center of a clicked atom
-      Navigate::zoom(m_glwidget, m_clickedAtom->pos(), deltaDragging.y());
-    }
-    else if (m_clickedBond)
-    {
-      Atom *begin = static_cast<Atom *>(m_clickedBond->GetBeginAtom());
-      Atom *end = static_cast<Atom *>(m_clickedBond->GetEndAtom());
-
-      Vector3d btoe = end->pos() - begin->pos();
-      double newLen = btoe.norm() / 2;
-      btoe = btoe / btoe.norm();
-
-      Vector3d mid = begin->pos() + btoe * newLen;
-
-      // Perform the rotation
-      Navigate::tilt(m_glwidget, mid, deltaDragging.x());
-
-      // Perform the zoom toward the centre of a clicked bond
-      Navigate::zoom(m_glwidget, mid, deltaDragging.y());
+      if(m_endAtom)
+      {
+        molecule->DeleteAtom(m_endAtom);
+        // widget->updateGeometry();
+        m_bond = 0;
+        m_endAtom = 0;
+        m_prevAtomElement = m_beginAtom->GetAtomicNum();
+        m_beginAtom->SetAtomicNum(m_element);
+        // m_beginAtom->update();
+      }
+      else if(m_bond)
+      {
+        Atom *oldAtom = (Atom *)m_bond->GetEndAtom();
+        oldAtom->DeleteBond(m_bond);
+        molecule->DeleteBond(m_bond);
+        m_bond=0;
+        m_prevAtomElement = m_beginAtom->GetAtomicNum();
+        m_beginAtom->SetAtomicNum(m_element);
+        // m_beginAtom->update();
+      }
     }
     else
     {
-      // Perform the rotation
-      Navigate::tilt(m_glwidget, m_glwidget->center(), deltaDragging.x());
+      if(m_prevAtomElement)
+      {
+        m_beginAtom->SetAtomicNum(m_prevAtomElement);
+        m_prevAtomElement = 0;
+      }
 
-      // Perform the zoom toward molecule center
-      Navigate::zoom(m_glwidget, m_glwidget->center(), deltaDragging.y());
-    }
-  }
-#ifdef Q_WS_MAC
-  // On the Mac, either use a three-button mouse
-  // or hold down the Command key (ControlModifier in Qt notation)
-  else if ((event->buttons() & Qt::RightButton) || (event->buttons() &
-           Qt::LeftButton && event->modifiers() & Qt::ControlModifier))
-#else
-  else if (event->buttons() & Qt::RightButton)
-#endif
-  {
-    if (isAtomInBond(m_clickedAtom, m_selectedBond))
-    {
-      // Adjust the length of the bond following the mouse movement.
+      // we hit an existing atom != m_endAtom
 
-      Atom *otherAtom;
+      if(existingAtom)
+      {
+        Bond *existingBond = (Bond *)molecule->GetBond(m_beginAtom, existingAtom);
+        cout << "13" << endl;
+        if(!existingBond) {
+          if(m_prevBond)
+          {
+            cout << "14" << endl;
+            m_prevBond->SetBondOrder(m_prevBondOrder);
+            // m_prevBond->update();
+            m_prevBond = 0;
+            m_prevBondOrder = 0;
+          }
+          cout << "15" << endl;
+          if(m_bond) {
+            if(m_endAtom) {
+              m_endAtom->DeleteBond(m_bond);
+              molecule->DeleteAtom(m_endAtom);
+              m_endAtom = 0;
+            } else {
+              Atom *oldAtom = (Atom *)m_bond->GetEndAtom();
+              oldAtom->DeleteBond(m_bond);
+            }
+            m_bond->SetEnd(existingAtom);
+            existingAtom->AddBond(m_bond);
+            // m_bond->update();
+          } else {
+            m_bond = newBond(molecule, m_beginAtom, existingAtom);
+            // m_bond->update();
+          }
+        }
+        // (existingBond)
+        else {
+          if(m_prevBond && m_prevBond != existingBond) {
+            m_prevBond->SetBondOrder(m_prevBondOrder);
+            // m_prevBond->update();
+            m_prevBond = 0;
+            m_prevBondOrder = 0;
+          }
+          if(!m_prevBond) {
+            m_prevBond = existingBond;
+            m_prevBondOrder = existingBond->GetBO();
+            existingBond->SetBondOrder(m_bondOrder);
+            // existingBond->update();
+          }
 
-      if (m_clickedAtom == static_cast<Atom*>(m_selectedBond->GetBeginAtom()))
-        otherAtom = static_cast<Atom*>(m_selectedBond->GetEndAtom());
+          if(m_bond && m_bond != existingBond) {
+            if(m_endAtom) {
+              // will delete bonds too (namely m_bond)
+              molecule->DeleteAtom(m_endAtom);
+              m_endAtom = 0;
+            } else {
+              molecule->DeleteBond(m_bond);
+            }
+            m_bond = 0;
+          }
+        }
+      }
+      // (!existingAtom && !hitBeginAtom)
+      else if(!m_endAtom)
+      {
+        if(m_prevBond) {
+          m_prevBond->SetBondOrder(m_prevBondOrder);
+          // m_prevBond->update();
+          m_prevBond = 0;
+          m_prevBondOrder = 0;
+        }
+        m_endAtom = newAtom(widget, event->pos());
+        if(!m_bond)
+        {
+          m_bond = newBond(molecule, m_beginAtom, m_endAtom);
+        }
+        else
+        {
+          Atom *oldAtom = (Atom *)m_bond->GetEndAtom();
+          oldAtom->DeleteBond(m_bond);
+          m_bond->SetEnd(m_endAtom);
+          m_endAtom->AddBond(m_bond);
+        }
+        // m_bond->update();
+        // m_endAtom->update();
+        widget->updateGeometry();
+      }
       else
-        otherAtom = static_cast<Atom*>(m_selectedBond->GetBeginAtom());
-
-      Vector3d clicked = m_clickedAtom->pos();
-      Vector3d other = otherAtom->pos();
-      Vector3d direction = clicked - other;
-
-      Vector3d mouseLast = widget->camera()->unProject(m_lastDraggingPosition);
-      Vector3d mouseCurr = widget->camera()->unProject(event->pos());
-      Vector3d mouseDir = mouseCurr - mouseLast;
-
-      Vector3d component = mouseDir.dot(direction) / direction.norm2() *
-direction;
-
-      if (m_skeleton) {
-        m_skeleton->skeletonTranslate(component.x(), component.y(),
-component.z());
+      {
+        moveAtom(widget, m_endAtom, event->pos());
+        // widget->updateGeometry();
+        // m_endAtom->update();
       }
     }
-    else {
-      // Translate the molecule following mouse movement.
-      Navigate::translate(m_glwidget, m_glwidget->center(),
-m_lastDraggingPosition, event->pos());
-    }
+    molecule->update();
   }
 
-  m_lastDraggingPosition = event->pos();
-  m_glwidget->update();
-
   return 0;
+}
+
+
+Atom *WiiMoteTool::newAtom(GLWidget *widget, const QPoint& p)
+{
+  // GRH (for reasons I don't understand, calling Begin/EndModify here
+  // causes crashes with multiple bond orders
+  // (need to investigate, probable OB bug.
+
+  widget->molecule()->BeginModify();
+  Atom *atom = static_cast<Atom*>(widget->molecule()->NewAtom());
+  moveAtom(widget, atom, p);
+  atom->SetAtomicNum(element());
+  widget->molecule()->EndModify();
+
+  return atom;
+}
+
+void WiiMoteTool::setBondOrder( int index )
+{
+  m_bondOrder = index;
+}
+
+int WiiMoteTool::bondOrder() const
+{
+  return m_bondOrder;
+}
+
+void WiiMoteTool::setElement( int index )
+{
+  m_element = index;
+}
+
+int WiiMoteTool::element() const
+{
+  return m_element;
+}
+
+void WiiMoteTool::moveAtom(GLWidget *widget, Atom *atom, const QPoint& p)
+{
+  Eigen::Vector3d refPoint;
+  if(m_beginAtom) {
+    refPoint = m_beginAtom->pos();
+  } else {
+    refPoint = widget->center();
+  }
+  Eigen::Vector3d newAtomPos = widget->camera()->unProject(p, refPoint);
+
+  atom->setPos(newAtomPos);
+}
+
+
+Bond *WiiMoteTool::newBond(Molecule *molecule, Atom *beginAtom, Atom *endAtom)
+{
+  molecule->BeginModify();
+  Bond *bond = (Bond *)molecule->NewBond();
+  bond->SetBondOrder(bondOrder());
+  bond->SetBegin(beginAtom);
+  bond->SetEnd(endAtom);
+  beginAtom->AddBond(bond);
+  endAtom->AddBond(bond);
+  molecule->EndModify();
+
+  return bond;
 }
 
 // ##########  wheel  ##########
@@ -830,6 +1075,185 @@ rgb);
 
   return true;
 }
+int m_count = 0;
+QUndoCommand* WiiMoteTool::wiimoteRoll(__s32 roll, __s32 prevRoll)
+{
+  //cout << "hellow there " << roll << " " << prevRoll << endl;
+  // Qt::LeftButton  == 1
+  if (!m_glwidget)
+    return 0;
+
+  if (!m_glwidget->molecule()) {
+    return 0;
+  }
+
+  m_roll = roll;
+  double relRoll = 0;
+
+  if (roll > 500)
+    relRoll = 500;
+  else if (roll < -500)
+    relRoll = -500;
+  else relRoll = roll;
+
+  relRoll = relRoll / 500;
+
+  // Mouse navigation has two modes - atom centred when an atom is clicked
+  // and scene if no atom has been clicked.
+  if (!m_editMode)
+  if (m_leftButtonPressed)
+  {
+    if (m_clickedBond && m_selectedBond && m_referencePoint)
+    {
+      /*
+      Atom *beginAtom = static_cast<Atom*>(m_selectedBond->GetBeginAtom());
+      Atom *endAtom = static_cast<Atom*>(m_selectedBond->GetEndAtom());
+
+      Vector3d rotationVector = beginAtom->pos() - endAtom->pos();
+      rotationVector = rotationVector / rotationVector.norm();
+
+      Vector3d begin = widget->camera()->project(beginAtom->pos());
+      Vector3d end = widget->camera()->project(endAtom->pos());
+
+      Vector3d zAxis = Vector3d(0, 0, 1);
+      Vector3d beginToEnd = end - begin;
+      beginToEnd -= Vector3d(0, 0, beginToEnd.z());
+
+      Vector3d direction = zAxis.cross(beginToEnd);
+      direction = direction / direction.norm();
+
+      Vector3d mouseMoved = Vector3d( - deltaDragging.x(), - deltaDragging.y(),
+                                        0);
+
+      double magnitude = mouseMoved.dot(direction) / direction.norm();
+
+      *m_referencePoint = performRotation(magnitude * (M_PI / 180.0),
+                                          rotationVector, Vector3d(0, 0, 0),
+                                              *m_referencePoint);
+
+      Eigen::Vector3d *reference = calculateSnapTo(widget, m_selectedBond,
+          m_referencePoint, m_snapToAngle);
+      if (reference && m_snapToEnabled)
+      {
+        m_snapped = true;
+        delete m_currentReference;
+        m_currentReference = reference;
+        *m_currentReference = m_currentReference->normalized();
+      }
+      else
+      {
+        m_snapped = false;
+        delete m_currentReference;
+        m_currentReference = new Vector3d(*m_referencePoint);
+      }*/
+    }
+    else if (m_clickedAtom && m_rightButtonPressed)
+    {
+      if (m_count < 5)
+      {
+        m_count++;
+        return 0;
+      }
+      m_count = 0;
+      //Do atom rotation.
+      Vector3d pos = m_clickedAtom->pos();
+      __s32 smallChange;
+      //smallChange = deltaRoll / 50;
+      smallChange = relRoll;
+      Vector3d newPos = Vector3d(pos.x(), pos.y(), pos.z() + smallChange);
+      m_clickedAtom->setPos(newPos);
+    }
+    else {
+      // rotation around the center of the molecule
+      //Navigate::rotate(m_glwidget, m_glwidget->center(), deltaDragging.x(),
+        //               deltaDragging.y());
+    }
+  }
+#ifdef Q_WS_MAC
+  // On the Mac, either use a three-button mouse
+  // or hold down the Option key (AltModifier in Qt notation)
+//  else if ((event->buttons() & Qt::MidButton) || (event->buttons() &
+  //          Qt::LeftButton && event->modifiers() & Qt::AltModifier))
+#else
+  else if (m_midButtonPressed)
+#endif
+  {/**
+    if (m_clickedAtom)
+    {
+      // Perform the rotation
+      Navigate::tilt(m_glwidget, m_clickedAtom->pos(), deltaDragging.x());
+
+      // Perform the zoom toward the center of a clicked atom
+      Navigate::zoom(m_glwidget, m_clickedAtom->pos(), deltaDragging.y());
+    }
+    else if (m_clickedBond)
+    {
+      Atom *begin = static_cast<Atom *>(m_clickedBond->GetBeginAtom());
+      Atom *end = static_cast<Atom *>(m_clickedBond->GetEndAtom());
+
+      Vector3d btoe = end->pos() - begin->pos();
+      double newLen = btoe.norm() / 2;
+      btoe = btoe / btoe.norm();
+
+      Vector3d mid = begin->pos() + btoe * newLen;
+
+      // Perform the rotation
+      Navigate::tilt(m_glwidget, mid, deltaDragging.x());
+
+      // Perform the zoom toward the centre of a clicked bond
+      Navigate::zoom(m_glwidget, mid, deltaDragging.y());
+    }
+    else
+    {
+      // Perform the rotation
+      Navigate::tilt(m_glwidget, m_glwidget->center(), deltaDragging.x());
+
+      // Perform the zoom toward molecule center
+      Navigate::zoom(m_glwidget, m_glwidget->center(), deltaDragging.y());
+    }**/
+  }
+  else if (m_rightButtonPressed)
+  {/*
+    if (isAtomInBond(m_clickedAtom, m_selectedBond))
+    {
+      // Adjust the length of the bond following the mouse movement.
+
+      Atom *otherAtom;
+
+      if (m_clickedAtom == static_cast<Atom*>(m_selectedBond->GetBeginAtom()))
+        otherAtom = static_cast<Atom*>(m_selectedBond->GetEndAtom());
+      else
+        otherAtom = static_cast<Atom*>(m_selectedBond->GetBeginAtom());
+
+      Vector3d clicked = m_clickedAtom->pos();
+      Vector3d other = otherAtom->pos();
+      Vector3d direction = clicked - other;
+
+      Vector3d mouseLast = widget->camera()->unProject(m_lastDraggingPosition);
+      Vector3d mouseCurr = widget->camera()->unProject(event->pos());
+      Vector3d mouseDir = mouseCurr - mouseLast;
+
+      Vector3d component = mouseDir.dot(direction) / direction.norm2() *
+          direction;
+
+      if (m_skeleton) {
+        m_skeleton->skeletonTranslate(component.x(), component.y(),
+                                      component.z());
+      }
+    }
+    else {
+      // Translate the molecule following mouse movement.
+      Navigate::translate(m_glwidget, m_glwidget->center(),
+                          m_lastDraggingPosition, event->pos());
+    }**/
+  }
+
+  
+  m_glwidget->update();
+
+  return 0;
+}
+
 
 // ##########  isAtomInBond  ##########
 
@@ -1272,6 +1696,36 @@ void WiiMoteTool::snapToAngleChanged(int newAngle)
   }
 }
 
+QUndoCommand* WiiMoteTool::wiimoteRumble(int rumble)
+{
+  if (rumble < 30)
+    return 0;
+
+  if (!m_glwidget)
+    return 0;
+  if (!m_glwidget->molecule())
+    return 0;
+
+  if (m_block)
+    return 0;
+  else
+    m_block = true;
+
+  if ( !m_forceField->Setup( *m_glwidget->molecule() ) ) {
+    qWarning() << "GhemicalCommand: Could not set up force field on " << m_glwidget->molecule();
+    m_block = false;
+    return 0;
+  }
+
+  m_forceField->SteepestDescent(1,pow(10.0, -7 ), OBFF_NUMERICAL_GRADIENT);
+  m_forceField->UpdateCoordinates( *m_glwidget->molecule() );
+  m_glwidget->molecule()->update();
+  m_glwidget->update();
+  m_block = false;
+  return 0;
+}
+
+
 void WiiMoteTool::cwiid_callback(cwiid_wiimote_t *wiimote, int mesg_count,
                     union cwiid_mesg mesg[], struct timespec *timestamp)
 {
@@ -1280,16 +1734,8 @@ void WiiMoteTool::cwiid_callback(cwiid_wiimote_t *wiimote, int mesg_count,
   for (i=0; i < mesg_count; i++) {
     switch (mesg[i].type) {
       case CWIID_MESG_BTN:
-        send_btn_event((struct cwiid_btn_mesg *) &mesg[i]);
+        sendButtonEvent((struct cwiid_btn_mesg *) &mesg[i]);
         //cout << "Msg Btn" << endl;
-        break;
-      case CWIID_MESG_ACC:
-        //cout << "ACC: " << &mesg[i].acc_mesg << endl;
-       // cwiid_acc(&mesg_array[i].acc_mesg);
-        break;
-      case CWIID_MESG_IR:
-        //cout << "IR: " << &mesg[i].ir_mesg << endl;
-       // cwiid_ir(&mesg_array[i].ir_mesg);
         break;
       case CWIID_MESG_NUNCHUK:
         //process_nunchuk_mesg((struct cwiid_nunchuk_mesg *) &mesg[i]);
@@ -1307,11 +1753,12 @@ void WiiMoteTool::cwiid_callback(cwiid_wiimote_t *wiimote, int mesg_count,
         break;
     }
   }
-  process_ir(mesg_count, mesg);
-  send_event(m_conf, EV_SYN, SYN_REPORT, 0);
+  processIR(mesg_count, mesg);
+  processAcc(mesg_count, mesg);
+  sendEvent(m_conf, EV_SYN, SYN_REPORT, 0);
 }
 
-void WiiMoteTool::send_btn_event(struct cwiid_btn_mesg *mesg)
+void WiiMoteTool::sendButtonEvent(struct cwiid_btn_mesg *mesg)
 {
   static uint16_t prev_buttons = 0;
   uint16_t pressed, released;
@@ -1324,10 +1771,22 @@ void WiiMoteTool::send_btn_event(struct cwiid_btn_mesg *mesg)
   for (i=0; i < CONF_WM_BTN_COUNT; i++) {
     if (m_conf.wiimote_bmap[i].active) {
       if (pressed & m_conf.wiimote_bmap[i].mask) {
-        send_event(m_conf, EV_KEY, m_conf.wiimote_bmap[i].action, 1);
+        //HACK ////////////////////
+        if (pressed & m_conf.wiimote_bmap[CONF_WM_BTN_MINUS].mask)
+        {
+          m_editMode = true;
+          cout << "Edit Mode" << endl;
+        } else
+          if (pressed & m_conf.wiimote_bmap[CONF_WM_BTN_PLUS].mask)
+        {
+          m_editMode = false;
+          cout << "Move Mode" << endl;
+        }
+        ///////////////////////////
+        sendEvent(m_conf, EV_KEY, m_conf.wiimote_bmap[i].action, 1);
       }
       else if (released & m_conf.wiimote_bmap[i].mask) {
-        send_event(m_conf, EV_KEY, m_conf.wiimote_bmap[i].action, 0);
+        sendEvent(m_conf, EV_KEY, m_conf.wiimote_bmap[i].action, 0);
       }
     }
   }
@@ -1345,7 +1804,7 @@ void WiiMoteTool::send_btn_event(struct cwiid_btn_mesg *mesg)
     if (conf.amap[CONF_WM_AXIS_DPAD_X].flags & CONF_INVERT) {
       axis_value *= -1;
     }
-    send_event(&conf, conf.amap[CONF_WM_AXIS_DPAD_X].axis_type,
+    sendEvent(&conf, conf.amap[CONF_WM_AXIS_DPAD_X].axis_type,
                 conf.amap[CONF_WM_AXIS_DPAD_X].action, axis_value);
   }
 
@@ -1361,13 +1820,13 @@ void WiiMoteTool::send_btn_event(struct cwiid_btn_mesg *mesg)
     if (conf.amap[CONF_WM_AXIS_DPAD_Y].flags & CONF_INVERT) {
       axis_value *= -1;
     }
-    send_event(&conf, conf.amap[CONF_WM_AXIS_DPAD_Y].axis_type,
+    sendEvent(&conf, conf.amap[CONF_WM_AXIS_DPAD_Y].axis_type,
                 conf.amap[CONF_WM_AXIS_DPAD_Y].action, axis_value);
   }**/
 }
 
 
-int WiiMoteTool::send_event(struct conf_st conf, __u16 type, __u16 code, __s32 value)
+int WiiMoteTool::sendEvent(struct WiiConfig conf, __u16 type, __u16 code, __s32 value)
 {
   struct input_event event;
 
@@ -1380,7 +1839,7 @@ int WiiMoteTool::send_event(struct conf_st conf, __u16 type, __u16 code, __s32 v
   bool error = size != sizeof(event);
   //cout << type << " " << code << " " << value << " #" << size << " X" << conf.fd << endl;
   if (error) {
-    cout << "Error on send_event" << endl;
+    cout << "Error on sendEvent" << endl;
     return -1;
   }
   return 0;
@@ -1416,13 +1875,12 @@ void WiiMoteTool::connectClicked()
     }
 
     if ((wiimote = cwiid_open(&bdaddr, CWIID_FLAG_MESG_IFC)) == NULL) {
-      QMessageBox::information(NULL, "Wii-Remote",
-                               "Unable to connect to Wii-Remote.\nMake sure it is in discoverable mode.");
+      displayError("Unable to connect to Wii-Remote.\nMake sure it is in discoverable mode.");
     } else if (cwiid_set_mesg_callback(wiimote, &Avogadro::WiiMoteTool::cwiid_callback_wrapper)) {
-      QMessageBox::information( NULL, "Wii-Remote", "Error setting callback.");
+      displayError("Error setting callback.");
 
       if (cwiid_close(wiimote)) {
-        QMessageBox::information( NULL, "Wii-Remote", "Error on disconnect.");
+        displayError("Error on disconnect.");
     }
     wiimote = NULL;
     }
@@ -1438,14 +1896,16 @@ void WiiMoteTool::connectClicked()
       ui.m_buttonConnect->setText("Connected");
       ui.m_buttonConnect->setEnabled(false);
       ui.m_buttonDisconnect->setEnabled(true);
-      if (cwiid_get_acc_cal(wiimote, CWIID_EXT_NONE, &wm_cal)) {
-        QMessageBox::information( NULL, "Wii-Remote", "Unable to retrieve accelerometer.\n");
+
+      if (cwiid_get_acc_cal(wiimote, CWIID_EXT_NONE, &m_accCalibration)) {
+        displayError("Unable to retrieve accelerometer.");
       }
 
-      load_conf();
+      loadWiiConfig();
 
       ///////////////////////////////////////////////////////////////
-      /* UInput */
+      /* Setup UInput */
+      ///////////////////////////////////////////////////////////////
       char *uinput_filename[] = {"/dev/uinput", "/dev/input/uinput",
         "/dev/misc/uinput"};
         int uinputfilenamecount = 3;
@@ -1463,31 +1923,31 @@ void WiiMoteTool::connectClicked()
         }
 
         if (m_conf.fd < 0) {
-          cout << "Unable to open uinput" << endl;
+          displayError("Unable to open uinput");
           return;
         }
 
         if (write(m_conf.fd, &m_conf.dev, sizeof m_conf.dev) != sizeof m_conf.dev) {
-          cout << "error on uinput device setup" << endl;
+          displayError("error on uinput device setup");
           close(m_conf.fd);
           return;
         }
 
         if (m_conf.ff) {
           if (ioctl(m_conf.fd, UI_SET_EVBIT, EV_FF) < 0) {
-            cout << "error on uinput ioctl" << endl;
+            displayError("error on uinput ioctl");
             close(m_conf.fd);
             return;
           }
           if (ioctl(m_conf.fd, UI_SET_FFBIT, FF_RUMBLE) < 0) {
-            cout << "error on uinput ioctl" << endl;
+            displayError("error on uinput ioctl" );
             close(m_conf.fd);
             return;
           }
         }
 
         if (ioctl(m_conf.fd, UI_SET_EVBIT, EV_KEY) < 0) {
-          cout << "error on uinput ioctl";
+          displayError("error on uinput ioctl");
           close(m_conf.fd);
           return;
         }
@@ -1495,7 +1955,7 @@ void WiiMoteTool::connectClicked()
       for (i=0; i < CONF_WM_BTN_COUNT; i++) {
         if (m_conf.wiimote_bmap[i].active) {
           if (ioctl(m_conf.fd, UI_SET_KEYBIT, m_conf.wiimote_bmap[i].action) < 0) {
-            cout << "error on uinput ioctl";
+            displayError("error on uinput ioctl");
             close(m_conf.fd);
             return;
           }
@@ -1503,46 +1963,45 @@ void WiiMoteTool::connectClicked()
       }
 
       if (ioctl(m_conf.fd, UI_SET_EVBIT, m_axisType) < 0) {
-        cout << "Error uinput ioctl";
+        displayError("Error uinput ioctl");
       }
 
       request = (m_axisType == EV_ABS) ? UI_SET_ABSBIT : UI_SET_RELBIT;
       if (ioctl(m_conf.fd, request, actionX) < 0) {
-        cout << "Error uinput ioctl";
+        displayError("Error uinput ioctl");
       }
 
       if (ioctl(m_conf.fd, request, actionY) < 0) {
-        cout << "Error uinput ioctl";
+        displayError("Error uinput ioctl");
       }
 
       if ((m_axisType == EV_ABS) && ((actionX == ABS_X) || (actionY == ABS_Y) || (actionZ == ABS_Z))) {
         if (ioctl(m_conf.fd, UI_SET_EVBIT, EV_REL) < 0) {
-          cout << "error uinput ioctl";
+          displayError("error uinput ioctl");
           close(m_conf.fd);
           return;
         }
 
         if (ioctl(m_conf.fd, UI_SET_RELBIT, actionX) < 0) {
-          cout << "error uinput ioctl";
+          displayError("error uinput ioctl");
           close(m_conf.fd);
           return;
         }
 
         if (ioctl(m_conf.fd, UI_SET_RELBIT, actionY) < 0) {
-          cout << "error uinput ioctl";
+          displayError("error uinput ioctl");
           close(m_conf.fd);
           return;
         }
       }
 
       if (ioctl(m_conf.fd, UI_DEV_CREATE) < 0) {
-        cout << "Error on uinput dev create";
+        displayError("Error on uinput dev create");
         close(m_conf.fd);
       }
 
-      set_report_mode();
+      setReportMode();
       cwiid_request_status(wiimote);
-
 
    if (reset_bdaddr) { bdaddr = *BDADDR_ANY; }
 
@@ -1550,12 +2009,106 @@ void WiiMoteTool::connectClicked()
   }
 }
 
-void WiiMoteTool::process_ir(int mesg_count, union cwiid_mesg mesg[])
+void WiiMoteTool::processAcc(int mesg_count, union cwiid_mesg mesg[])
+{
+  int i;
+  struct ProcessedWiiMoteData *data = NULL;
+
+  __s32 oldAcc = m_accData.axes[0].value;
+
+  for (i=0; i < mesg_count; i++) {
+    switch (mesg[i].type) {
+      case CWIID_MESG_ACC:
+        data = processAccData(&mesg[i].acc_mesg);
+        if (data->axes[0].value != oldAcc)
+        {
+          //data->axes[0].value = data->axes[0].value | 0x40000000;
+         // cout <<"_" << data->axes[0].value << endl;
+         // sendEvent(m_conf, EV_ABS, ABS_X, data->axes[0].value);
+          sendCustomEvent(data->axes[0].value, oldAcc);
+        }
+        if (data->axes[2].value > 25)
+          sendRumbleEvent(data->axes[2].value);
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+void WiiMoteTool::sendCustomEvent(__s32 rollVal, __s32 prevRollVal)
+{
+  wiimoteRoll(rollVal, prevRollVal);
+}
+
+void WiiMoteTool::sendRumbleEvent(int rumble)
+{
+  wiimoteRumble(rumble);
+}
+
+struct ProcessedWiiMoteData *WiiMoteTool::processAccData(struct cwiid_acc_mesg *mesg)
+{
+  double a, a_x, a_y, a_z;
+  double roll, pitch;
+  double newAmount = 0.1;
+  double oldAmount = 1 - newAmount;
+  float Roll_Scale = 1.0;
+  float Pitch_Scale = 1.0;
+  float X_Scale = 1.0;
+  float Y_Scale = 1.0;
+
+  a_x = (((double)mesg->acc[CWIID_X] - m_accCalibration.zero[CWIID_X]) /
+      (m_accCalibration.one[CWIID_X] - m_accCalibration.zero[CWIID_X]))*newAmount +
+      a_x*oldAmount;
+  a_y = (((double)mesg->acc[CWIID_Y] - m_accCalibration.zero[CWIID_Y]) /
+      (m_accCalibration.one[CWIID_Y] - m_accCalibration.zero[CWIID_Y]))*newAmount +
+      a_y*oldAmount;
+  a_z = (((double)mesg->acc[CWIID_Z] - m_accCalibration.zero[CWIID_Z]) /
+      (m_accCalibration.one[CWIID_Z] - m_accCalibration.zero[CWIID_Z]))*newAmount +
+      a_z*oldAmount;
+
+  a = sqrt(pow(a_x,2)+pow(a_y,2)+pow(a_z,2));
+  roll = atan(a_x/a_z);
+  if (a_z <= 0.0) {
+    roll += PI * ((a_x > 0.0) ? 1 : -1);
+  }
+
+  pitch = atan(a_y/a_z*cos(roll));
+
+  m_accData.axes[0].value = roll  * 1000 * Roll_Scale;
+  m_accData.axes[1].value = pitch * 1000 * Pitch_Scale;
+  m_accData.axes[2].value = a * 100;
+
+/**  if ((a > 0.85) && (a < 1.15)) {
+    if ((fabs(roll)*(180/PI) > 10) && (fabs(pitch)*(180/PI) < 80)) {
+      m_accData.axes[2].valid = 1;
+      m_accData.axes[2].value = roll * 5 * X_Scale;
+    }
+    else {
+      m_accData.axes[2].valid = 0;
+    }
+    if (fabs(pitch)*(180/PI) > 10) {
+      m_accData.axes[3].valid = 1;
+      m_accData.axes[3].value = pitch * 10 * Y_Scale;
+    }
+    else {
+      m_accData.axes[3].valid = 0;
+    }
+  }
+  else {
+    m_accData.axes[2].valid = 0;
+    m_accData.axes[3].valid = 0;
+  }**/
+  return &m_accData;
+}
+
+void WiiMoteTool::processIR(int mesg_count, union cwiid_mesg mesg[])
 {
   static union cwiid_mesg irMessage[CWIID_MAX_MESG_COUNT];
   int irMessageCount = 0;
   int i;
   uint8_t flag;
+  ProcessedWiiMoteData *data = NULL;
 
   for (i=0; i < mesg_count; i++) {
     switch (mesg[i].type) {
@@ -1580,27 +2133,32 @@ void WiiMoteTool::process_ir(int mesg_count, union cwiid_mesg mesg[])
       default:
         break;
     }
-    if (m_rpt_mode & flag) {
+    if (m_reportMode & flag) {
       /* TODO: copy correct (smaller) message size */
       memcpy(&irMessage[irMessageCount++], &mesg[i], sizeof mesg[i]);
     }
   }
 
   if (irMessageCount > 0) {
-    if (!(wmplugin_exec(mesg_count, mesg))) {
+    data = processIRData(mesg_count, mesg); 
+    if (!data) {
       return;
     }
 
-    send_event(m_conf, EV_ABS, ABS_X, m_data.axes[0].value);
-    send_event(m_conf, EV_ABS, ABS_Y, m_data.axes[1].value);
+    sendEvent(m_conf, EV_ABS, ABS_X, data->axes[0].value);
+    sendEvent(m_conf, EV_ABS, ABS_Y, data->axes[1].value);
+    //sendEvent(m_conf, EV_ABS, ABS_Z, m_data.axes[2].value);
   }
 }
 
-struct wmplugin_data* WiiMoteTool::wmplugin_exec(int mesg_count, union cwiid_mesg mesg[])
+struct ProcessedWiiMoteData *WiiMoteTool::processIRData(int mesg_count, union cwiid_mesg mesg[])
 {
-  static int src_index = -1;
-  static int debounce = 0;
-  static uint8_t old_flag;
+  double newAmount = 0.1;
+  double oldAmount = 1 - newAmount;
+
+  int src_index = -1;
+  int debounce = 0;
+  uint8_t old_flag;
 
   int i;
   uint8_t flag;
@@ -1667,35 +2225,66 @@ struct wmplugin_data* WiiMoteTool::wmplugin_exec(int mesg_count, union cwiid_mes
   }
 
   if ((src_index == -1) || !ir_mesg->src[src_index].valid) {
-    m_data.axes[0].valid = m_data.axes[1].valid = 0;
+    m_irData.axes[0].valid = m_irData.axes[1].valid = m_irData.axes[2].valid = 0;
   }
   else {
-    //cout << "calculating m_data" << endl;
-    m_data.axes[0].valid = m_data.axes[1].valid = 1;
-    m_data.axes[0].value = NEW_AMOUNT * (CWIID_IR_X_MAX -
+    m_irData.axes[0].valid = m_irData.axes[1].valid = m_irData.axes[2].valid = 1;
+    m_irData.axes[0].value = newAmount * (CWIID_IR_X_MAX -
         ir_mesg->src[src_index].pos[CWIID_X])
-        + OLD_AMOUNT * m_data.axes[0].value;
-    m_data.axes[1].value = NEW_AMOUNT * ir_mesg->src[src_index].pos[CWIID_Y]
-        + OLD_AMOUNT * m_data.axes[1].value;
+        + oldAmount * m_irData.axes[0].value;
+    m_irData.axes[1].value = newAmount * ir_mesg->src[src_index].pos[CWIID_Y]
+        + oldAmount * m_irData.axes[1].value;
 
-    if (m_data.axes[0].value > CWIID_IR_X_MAX - X_EDGE) {
-      m_data.axes[0].value = CWIID_IR_X_MAX - X_EDGE;
+
+    /*
+    int l1 = 0;
+    int l2 = 0;
+    //get the two largest source size
+    for (i=0; i < CWIID_IR_SRC_COUNT; i++) {
+      if (ir_mesg->src[i].valid) {
+        if (ir_mesg->src[i].size > ir_mesg->src[l1].size) {
+        l2 = l1;
+        l1 = i;
+        }
+      }
     }
-    else if (m_data.axes[0].value < X_EDGE) {
-      m_data.axes[0].value = X_EDGE;
+    //the increase and decrease of distance between the two
+    //sources determines the Z axes position.
+    //Hence, there must be atleast two ir source to work with
+    ////////// This technique does not work /////////////////
+    if (l1 != l2) {
+      m_data.axes[2].value = abs((( newAmount * ir_mesg->src[l1].pos[CWIID_X])/CWIID_IR_X_MAX *
+          ( newAmount * ir_mesg->src[l1].pos[CWIID_Y]) / CWIID_IR_Y_MAX) - 
+          ((newAmount * ir_mesg->src[l2].pos[CWIID_X]) / CWIID_IR_X_MAX *
+          ( newAmount * ir_mesg->src[l2].pos[CWIID_Y]) / CWIID_IR_Y_MAX));
     }
-    if (m_data.axes[1].value > CWIID_IR_Y_MAX - Y_EDGE) {
-      m_data.axes[1].value = CWIID_IR_Y_MAX - Y_EDGE;
+    cout << ir_mesg->src[src_index].pos[CWIID_X]
+    << " " << ir_mesg->src[src_index].pos[CWIID_Y]
+        << " " << m_data.axes[2].value << endl;
+    **/
+
+    if (m_irData.axes[0].value > CWIID_IR_X_MAX - X_EDGE) {
+      m_irData.axes[0].value = CWIID_IR_X_MAX - X_EDGE;
     }
-    else if (m_data.axes[1].value < Y_EDGE) {
-      m_data.axes[1].value = Y_EDGE;
+    else if (m_irData.axes[0].value < X_EDGE) {
+      m_irData.axes[0].value = X_EDGE;
+    }
+    if (m_irData.axes[1].value > CWIID_IR_Y_MAX - Y_EDGE) {
+      m_irData.axes[1].value = CWIID_IR_Y_MAX - Y_EDGE;
+    }
+    else if (m_irData.axes[1].value < Y_EDGE) {
+      m_irData.axes[1].value = Y_EDGE;
     }
   }
-  return &m_data;
+  return &m_irData;
 }
 
+void WiiMoteTool::displayError(QString message)
+{
+  QMessageBox::information( NULL, "Wii-Remote", message);
+}
 
-void WiiMoteTool::load_conf()
+void WiiMoteTool::loadWiiConfig()
 {
   memset(&m_conf.dev, 0, sizeof m_conf.dev);
   strncpy(m_conf.dev.name, UINPUT_NAME, UINPUT_MAX_NAME_SIZE);
@@ -1744,18 +2333,25 @@ void WiiMoteTool::load_conf()
   m_conf.wiimote_bmap[CONF_WM_BTN_1].action = KEY_A;
   m_conf.wiimote_bmap[CONF_WM_BTN_2].active = 1;
   m_conf.wiimote_bmap[CONF_WM_BTN_2].action = KEY_B;
+
+  m_conf.wiimote_bmap[CONF_WM_BTN_MINUS].active = 1;
+  m_conf.wiimote_bmap[CONF_WM_BTN_MINUS].action = KEY_1;
+
+  m_conf.wiimote_bmap[CONF_WM_BTN_PLUS].active = 1;
+  m_conf.wiimote_bmap[CONF_WM_BTN_PLUS].action = KEY_2;
+
 }
 
-void WiiMoteTool::set_report_mode()
+void WiiMoteTool::setReportMode()
 { 
-  m_rpt_mode = CWIID_RPT_STATUS | CWIID_RPT_BTN;
-  m_rpt_mode |= CWIID_RPT_IR;
-  m_rpt_mode |= CWIID_RPT_ACC;
+  m_reportMode = CWIID_RPT_STATUS | CWIID_RPT_BTN;
+  m_reportMode |= CWIID_RPT_IR;
+  m_reportMode |= CWIID_RPT_ACC;
   /*
   if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(chkExt))) {
     rpt_mode |= CWIID_RPT_EXT;
   }**/
-  if (cwiid_set_rpt_mode(wiimote, m_rpt_mode)) {
+  if (cwiid_set_rpt_mode(wiimote, m_reportMode)) {
     QMessageBox::information( NULL, "Wii-Remote",
                               "Error setting report mode.\n");
   }

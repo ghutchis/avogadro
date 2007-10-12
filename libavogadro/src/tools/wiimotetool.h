@@ -34,6 +34,7 @@
 #include <avogadro/tool.h>
 
 #include <openbabel/mol.h>
+#include <openbabel/forcefield.h>
 
 #include <QGLWidget>
 #include <QObject>
@@ -56,34 +57,33 @@
 #define WMPLUGIN_MAX_AXIS_COUNT 6
 
 #define DEBOUNCE_THRESHOLD  50
-#define NEW_AMOUNT  0.3
-#define OLD_AMOUNT  (1.0 - NEW_AMOUNT)
 #define X_EDGE  50
 #define Y_EDGE  50
+#define PI  3.14159265358979323
 
 namespace Avogadro {
 
-  struct btn_map {
+  struct ButtonsMap {
     unsigned char active;
     uint16_t mask;
     __u16 action;
   };
 
-  struct conf_st {
+  struct WiiConfig {
     int fd;
     struct uinput_user_dev dev;
     unsigned char ff;
-    struct btn_map wiimote_bmap[CONF_WM_BTN_COUNT];
+    struct ButtonsMap wiimote_bmap[CONF_WM_BTN_COUNT];
   };
 
-  struct wmplugin_axis {
+  struct AxesData {
     char valid;
     __s32 value;
   };
 
-  struct wmplugin_data {
+  struct ProcessedWiiMoteData {
     uint16_t buttons;
-    struct wmplugin_axis axes[WMPLUGIN_MAX_AXIS_COUNT];
+    struct AxesData axes[WMPLUGIN_MAX_AXIS_COUNT];
   };
 
   /**
@@ -95,6 +95,7 @@ namespace Avogadro {
    * design as apposed to points in free space design.  It is based off
    * the NavigationTool class by Marcus D. Hanwell.
    */
+  class AddAtomCommand;
   class WiiMoteTool : public Tool
   {
     Q_OBJECT
@@ -121,6 +122,12 @@ namespace Avogadro {
       virtual QUndoCommand* mouseRelease(GLWidget *widget, const QMouseEvent *event);
       virtual QUndoCommand* mouseMove(GLWidget *widget, const QMouseEvent *event);
       virtual QUndoCommand* wheel(GLWidget *widget, const QWheelEvent *event);
+
+      //FIXME HACK 
+      virtual QUndoCommand* wiimoteRoll(__s32 roll, __s32 prevRoll);
+      virtual QUndoCommand* wiimoteRumble(int rumble);
+      QUndoCommand* editModeMouseRelease(GLWidget *widget, const QMouseEvent* event);
+      QUndoCommand* editModeMouseMove(GLWidget *widget, const QMouseEvent *event);
       //@}
 
       virtual int usefulness() const;
@@ -129,7 +136,10 @@ namespace Avogadro {
 
       virtual QWidget *settingsWidget();
 
-
+      void setBondOrder(int i);
+      int bondOrder() const;
+      void setElement(int i);
+      int element() const;
       
     public Q_SLOTS:
       /**
@@ -213,25 +223,65 @@ namespace Avogadro {
       QSpinBox *          m_snapToAngleBox;
       QGridLayout *       m_layout;
 
-      /* Globals */
-      cwiid_wiimote_t *wiimote;
-      conf_st m_conf;
-      struct input_event m_event;
-      struct wmplugin_data m_data;
-      uint8_t m_rpt_mode;
+      Qt::MouseButtons _buttons;
+      QPoint              m_initialDragginggPosition;
+      bool m_beginAtomAdded;
+      Atom *m_beginAtom;
+      Atom *m_endAtom;
+      int m_element;
+      Bond *m_bond;
+      int m_bondOrder;
+      int m_prevAtomElement;
+      Bond *m_prevBond;
+      int m_prevBondOrder;
+      QList<GLHit> m_hits;
 
-      int send_event(struct conf_st conf, __u16 type, __u16 code, __s32 value);
-      void send_btn_event(struct cwiid_btn_mesg *mesg);
+      OpenBabel::OBForceField*  m_forceField;
+      bool m_block;
+
+      double m_avgChange;
+      int m_valuesAveraged;
+      double rollCalibrationVal;
+      double m_lastRollMovePosition;
+      double m_roll;
+      bool m_editMode;
+
+      cwiid_wiimote_t *wiimote;
+      WiiConfig m_conf;
+      struct input_event m_event;
+      struct ProcessedWiiMoteData m_irData;
+      struct ProcessedWiiMoteData m_accData;
+      struct acc_cal m_accCalibration;
+
+      uint8_t m_reportMode;
+
+      int sendEvent(struct WiiConfig conf, __u16 type, __u16 code, __s32 value);
+      void sendButtonEvent(struct cwiid_btn_mesg *mesg);
       void cwiid_callback(cwiid_wiimote_t *wiimote, int mesg_count,
                           union cwiid_mesg mesg[], struct timespec *timestamp);
       static void cwiid_callback_wrapper(cwiid_wiimote_t *wiimote, int mesg_count,
                                          union cwiid_mesg mesg[], struct timespec *timestamp);
-      wmplugin_data *wmplugin_exec(int mesg_count, union cwiid_mesg mesg[]);
+      ProcessedWiiMoteData *processIRData(int mesg_count, union cwiid_mesg mesg[]);
+      ProcessedWiiMoteData *processAccData(struct cwiid_acc_mesg *mesg);
 
-      void process_ir(int mesg_count, union cwiid_mesg mesg[]);
-      void set_report_mode();
-      void load_conf();
+      void processIR(int mesg_count, union cwiid_mesg mesg[]);
+      void processAcc(int mesg_count, union cwiid_mesg mesg[]);
+      void setReportMode();
+      void loadWiiConfig();
       void cleanup();
+      void displayError(QString message);
+
+      //#######Hack######################################################
+      void sendCustomEvent(__s32 rollVal, __s32 prevRollVal);
+      void sendRumbleEvent(int rumble);
+      ///////////////////////////////////////////////////////////////////
+      void translate(GLWidget *widget, const Eigen::Vector3d &what, const QPoint &from, const QPoint &to) const;
+      
+      //ATOM ADD METHODS////////////////////////////////////////////////
+      Atom *newAtom(GLWidget *widget, const QPoint& p);
+      void moveAtom(GLWidget *widget, Atom *atom, const QPoint& p);
+      Bond *newBond(Molecule *molecule, Atom *beginAtom, Atom *endAtom);
+      //////////////////////////////////////////////////////////////////
 
       //! \name Construction Plane/Angles Methods
       //@{
