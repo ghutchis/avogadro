@@ -51,6 +51,7 @@ namespace Avogadro {
       virtual QUndoCommand* performAction(QAction *action, GLWidget *widget);
 
       virtual void setMolecule(Molecule *molecule);
+      
 
 
   protected:
@@ -65,6 +66,7 @@ namespace Avogadro {
     
     protected Q_SLOTS:
       virtual void loadFile(QString file)=0;
+      void writeTrajectoryFile(QString file); 
       void setDuration(int i);
       void setLoop(int state);
       void setFrame(int i);

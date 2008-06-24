@@ -174,11 +174,22 @@ target_link_libraries(animationextension ${LINK_LIBS})
 install(TARGETS animationextension DESTINATION ${DESTINATION_DIR})
 
 
-set(linmorphextension_SRCS linmorphextension.cpp animatemoldialog.cpp animatemolextension.cpp)
+
+
+#set(linmorphextension_SRCS linmorphextension.cpp animatemoldialog.cpp )
+#qt4_add_resources(linmorphextension_RC_SRCS animatemol.qrc)
+#qt4_wrap_ui(animatemoldialog_UIS_H animatemoldialog.ui)
+#qt4_automoc(${linmorphextension_SRCS})
+#add_library(linmorphextension MODULE ${linmorphextension_SRCS}
+#  ${animatemoldialog_UIS_H} ${linmorphextension_RC_SRCS} ) 
+#target_link_libraries(linmorphextension ${LINK_LIBS})
+#install(TARGETS linmorphextension DESTINATION ${DESTINATION_DIR})
+
+set(linmorphextension_SRCS linmorphextension.cpp linmorphdialog.cpp )
 qt4_add_resources(linmorphextension_RC_SRCS animatemol.qrc)
-qt4_wrap_ui(animatemoldialog_UIS_H animatemoldialog.ui)
+qt4_wrap_ui(linmorphdialog_UIS_H linmorphdialog.ui)
 qt4_automoc(${linmorphextension_SRCS})
 add_library(linmorphextension MODULE ${linmorphextension_SRCS}
-  ${animatemoldialog_UIS_H} ${linmorphextension_RC_SRCS} ) 
+  ${linmorphdialog_UIS_H} ${linmorphextension_RC_SRCS} ) 
 target_link_libraries(linmorphextension ${LINK_LIBS})
 install(TARGETS linmorphextension DESTINATION ${DESTINATION_DIR})

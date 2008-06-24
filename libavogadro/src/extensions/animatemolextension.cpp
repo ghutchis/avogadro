@@ -1,7 +1,10 @@
 
 #include "animatemolextension.h"
+#include <openbabel/obconversion.h>
 
 #include <QAction>
+
+#include <QMessageBox>
 
 using namespace std;
 using namespace OpenBabel;
@@ -122,6 +125,19 @@ namespace Avogadro
     m_timeLine->setCurrentTime(0);
     setFrame(1);
   }
+
+  void AnimateMolExtension::writeTrajectoryFile(QString file) 
+  {
+    OBConversion conv;
+    conv.SetOutFormat("txyz");
+    if (!conv.WriteFile(m_molecule, file.toStdString())) {
+       QMessageBox::warning( NULL, tr( "Avogadro" ),
+          tr( "Write trajectory file %1 failed." )
+          .arg( file ) );
+    }
+  }
+
+
 }
 
 #include "animatemolextension.moc"

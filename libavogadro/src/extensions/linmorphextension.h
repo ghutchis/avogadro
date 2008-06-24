@@ -2,13 +2,20 @@
 #ifndef LINMORPHEXTENSION_H
 #define LINMORPHEXTENSION_H
 
-#include "animatemolextension.h"
+
+#include <avogadro/extension.h>
+#include <avogadro/primitive.h>
+#include <avogadro/glwidget.h>
+#include <QTimeLine>
+//#include "animatemoldialog.h"
+#include "linmorphdialog.h"
+
 #include <avogadro/primitive.h>
 #include <avogadro/glwidget.h>
 
 namespace Avogadro {
   
-  class LinMorphExtension : public AnimateMolExtension
+  class LinMorphExtension : public Extension
   {
     Q_OBJECT
       public:
@@ -22,16 +29,46 @@ namespace Avogadro {
 
       virtual QString menuPath(QAction *action) const;
 
-      //! the number of frames to be animated... i.e. the timestep dt
-      int m_numFrames;
       
-      //!the current frame
+      //!the current frame?
       int m_frameCount;
 
+
+
+
+      virtual QList<QAction *> actions() const;
+
+
+      virtual QDockWidget * dockWidget();
+      virtual QUndoCommand* performAction(QAction *action, GLWidget *widget);
+
+      virtual void setMolecule(Molecule *molecule);
       
+
+
+  protected:
+      Molecule *m_molecule;
+      Molecule *m_secondMolecule;
+      
+
+      QList<QAction *> m_actions;
+      //AnimateMolDialog *m_animateMolDialog;
+      LinMorphDialog *m_animateMolDialog;
+      QTimeLine *m_timeLine;
+
+    
+    protected Q_SLOTS:
+
+      void saveTrajFile(QString file); 
+      void setDuration(int i);
+      void setLoop(int state);
+      void setFrame(int i);
+      void setFrameCount(int i);
+      void stop();
+      virtual void loadFile(QString file);
+
       
   private:
-      virtual void loadFile(QString file);
       virtual void computeConformers(Molecule* conformer2Mol);
       
             
