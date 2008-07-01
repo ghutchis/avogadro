@@ -102,7 +102,7 @@
         <string/>
        </property>
        <property name="icon" >
-        <iconset resource="animation.qrc" >
+        <iconset resource="linmorph.qrc" >
          <normaloff>:/amarok/icons/amarok_play.png</normaloff>:/amarok/icons/amarok_play.png</iconset>
        </property>
        <property name="iconSize" >
@@ -131,7 +131,7 @@
         <string/>
        </property>
        <property name="icon" >
-        <iconset resource="animation.qrc" >
+        <iconset resource="linmorph.qrc" >
          <normaloff>:/amarok/icons/amarok_pause.png</normaloff>:/amarok/icons/amarok_pause.png</iconset>
        </property>
        <property name="iconSize" >
@@ -160,7 +160,7 @@
         <string/>
        </property>
        <property name="icon" >
-        <iconset resource="animation.qrc" >
+        <iconset resource="linmorph.qrc" >
          <normaloff>:/amarok/icons/amarok_stop.png</normaloff>:/amarok/icons/amarok_stop.png</iconset>
        </property>
        <property name="iconSize" >
@@ -240,7 +240,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="animation.qrc" />
+  <include location="linmorph.qrc" />
  </resources>
  <connections/>
 </ui>
