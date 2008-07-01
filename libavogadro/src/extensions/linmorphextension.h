@@ -50,16 +50,19 @@ namespace Avogadro {
       Molecule *m_molecule;
       Molecule *m_secondMolecule;
       
+      // hate hate hate to put this here, but not sure what else to do
+      // this will be the glwidget passed from performAction
+      GLWidget *m_widget;
+      
 
       QList<QAction *> m_actions;
-      //AnimateMolDialog *m_animateMolDialog;
       LinMorphDialog *m_animateMolDialog;
       QTimeLine *m_timeLine;
 
     
-    protected Q_SLOTS:
-
-      void saveTrajFile(QString file); 
+   protected Q_SLOTS:
+      void saveGlSnapshots(QString prefix);
+      void savePovSnapshots(QString prefix);
       void setDuration(int i);
       void setLoop(int state);
       void setFrame(int i);

@@ -29,6 +29,7 @@
 #include <QFile>
 
 #include <QMessageBox>
+#include <QInputDialog>
 
 #include <openbabel/plugin.h>
 
@@ -45,12 +46,10 @@ namespace Avogadro {
     connect(ui.fpsSpin, SIGNAL(valueChanged(int)), this, SIGNAL(fpsChanged(int)));
     connect(ui.loopBox, SIGNAL(stateChanged(int)), this, SIGNAL(loopChanged(int)));
     connect(ui.numFramesSpin, SIGNAL(valueChanged(int)), this, SIGNAL(frameCountChanged(int)));    
-    connect(ui.saveTrajectoryButton, SIGNAL(clicked()), this, SLOT(saveTrajFile()));
+    connect(ui.saveSnapshotsButton, SIGNAL(clicked()), this, SLOT(savePovSnapshots()));
     connect(ui.playButton, SIGNAL(clicked()), this, SIGNAL(play()));
     connect(ui.pauseButton, SIGNAL(clicked()), this, SIGNAL(pause()));
     connect(ui.stopButton, SIGNAL(clicked()), this, SIGNAL(stop()));
-
-
   }
 
   LinMorphDialog::~LinMorphDialog()
@@ -60,32 +59,46 @@ namespace Avogadro {
 
   void LinMorphDialog::loadFile()
   {
-    // Load a file
-    QString file = QFileDialog::getOpenFileName(this,
-      tr("Open mol file"), ui.fileEdit->text(),
-						tr("Any files (*.*)"));
-						//tr("Trajectory files (*.xtc)"));
-    ui.fileEdit->setText(file);
-    
+    QString file = 
+      QFileDialog::getOpenFileName(this,
+				   tr("Open mol file"), ui.fileEdit->text(),
+				   tr("Any files (*.*)"));
+    ui.fileEdit->setText(file); 
     emit fileName(file);
   }
 
-
-  void LinMorphDialog::saveTrajFile()
+  void LinMorphDialog::savePovSnapshots()
   {
-    // Load a file
-    QString file = QFileDialog::getSaveFileName(this,
-      tr("Traj file to save to"), ui.fileEdit->text(),
-						tr("Trajectory files (*.xtc)"));
-    //ui.fileEdit->setText(file);
+    QString ssDirectory = 
+      QFileDialog::getExistingDirectory(this, 
+					tr("Open Directory"),
+					ui.fileEdit->text(),
+					QFileDialog::ShowDirsOnly
+					| QFileDialog::DontResolveSymlinks);    
     
-    emit trajFileName(file);
+    bool ok;
+    QString ssPrefixText = 
+      QInputDialog::getText(this, tr("QInputDialog::getText()"),
+			    tr("prefix for pov files"), 
+			    QLineEdit::Normal,
+			    QDir::home().dirName(), &ok);
+    
+    QString ssFullPrefixText;
+    if (ok && !ssPrefixText.isEmpty() && !ssDirectory.isEmpty()) {
+      ssFullPrefixText = ssDirectory + ssPrefixText;
+      ui.fullPrefixLine->setText(ssFullPrefixText);
+    }
+    else {
+      QMessageBox::warning( NULL, tr( "Avogadro" ),
+			    tr( "Directory and prefix for snapshots not given" ));
+      return;
+    }    
+    emit snapshotsPrefix(ssFullPrefixText);
   }
-
+  
   void LinMorphDialog::setFrame(int i)
   {
     QString str = tr("%1/%2").arg( i ).arg( m_frameCount );
-
     ui.frameEdit->setText(str);
     ui.frameSlider->setValue(i);
   }
@@ -94,6 +107,7 @@ namespace Avogadro {
   {
     m_frameCount = i;
     ui.frameSlider->setMaximum(i);
+    ui.numFramesSpin->setValue(i);
     setFrame(1);
   }
 
@@ -101,7 +115,6 @@ namespace Avogadro {
   {
     return ui.fpsSpin->value();
   }
-
 }
 
 #include "linmorphdialog.moc"

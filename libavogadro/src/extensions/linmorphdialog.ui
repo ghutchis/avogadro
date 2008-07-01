@@ -6,7 +6,7 @@
     <x>0</x>
     <y>0</y>
     <width>511</width>
-    <height>212</height>
+    <height>252</height>
    </rect>
   </property>
   <property name="windowTitle" >
@@ -20,8 +20,14 @@
      </item>
      <item>
       <widget class="QPushButton" name="loadButton" >
+       <property name="toolTip" >
+        <string>Load a second confromation and computer a linear interpolation with the current conformation.</string>
+       </property>
+       <property name="whatsThis" >
+        <string>button to load a second conformation from a file.</string>
+       </property>
        <property name="text" >
-        <string>Load File...</string>
+        <string>Load Second Conformation ...</string>
        </property>
       </widget>
      </item>
@@ -214,9 +220,18 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout" >
      <item>
-      <widget class="QPushButton" name="saveTrajectoryButton" >
+      <widget class="QLineEdit" name="fullPrefixLine" />
+     </item>
+     <item>
+      <widget class="QPushButton" name="saveSnapshotsButton" >
+       <property name="toolTip" >
+        <string>Save snapshots of the trajectory as a series of POVRay files.  These can then be used to make a movie.</string>
+       </property>
+       <property name="whatsThis" >
+        <string>Button to save the current trajectory.</string>
+       </property>
        <property name="text" >
-        <string>Save Trajectory File...</string>
+        <string>Save Snapshots...</string>
        </property>
       </widget>
      </item>

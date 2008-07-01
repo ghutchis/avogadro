@@ -6,7 +6,8 @@
 #include <QMessageBox>
 
 #include <openbabel/obconversion.h>
-
+#include <avogadro/povpainter.h>
+#include <QInputDialog>
 
 using namespace std;
 using namespace OpenBabel;
@@ -134,9 +135,11 @@ namespace Avogadro
     m_molecule = molecule;
   }
 
-  QUndoCommand* LinMorphExtension::performAction(QAction *, GLWidget*)
+  QUndoCommand* LinMorphExtension::performAction(QAction *, GLWidget* widget)
   {
     qDebug( "LinMorphExtension::performAction()" );
+    
+    m_widget = widget;
 
     if (!m_animateMolDialog)
       {
@@ -144,12 +147,15 @@ namespace Avogadro
 	m_animateMolDialog = new LinMorphDialog;
 	
 	connect(m_animateMolDialog, SIGNAL(fileName(QString)), this, SLOT(loadFile(QString)));
-	connect(m_animateMolDialog, SIGNAL(trajFileName(QString)), this, SLOT(saveTrajectoryFile(QString)));
+	connect(m_animateMolDialog, SIGNAL(snapshotsPrefix(QString)), this, SLOT(savePovSnapshots(QString)));
 	connect(m_animateMolDialog, SIGNAL(sliderChanged(int)), this, SLOT(setFrame(int)));
 	connect(m_animateMolDialog, SIGNAL(fpsChanged(int)), this, SLOT(setDuration(int)));
 	connect(m_animateMolDialog, SIGNAL(loopChanged(int)), this, SLOT(setLoop(int)));
 	
 	connect(m_timeLine, SIGNAL(frameChanged(int)), this, SLOT(setFrame(int)));
+	
+
+
 	connect(m_animateMolDialog, SIGNAL(play()), m_timeLine, SLOT(start()));
 	connect(m_animateMolDialog, SIGNAL(pause()), m_timeLine, SLOT(stop()));
 	connect(m_animateMolDialog, SIGNAL(stop()), this, SLOT(stop()));
@@ -157,6 +163,9 @@ namespace Avogadro
 	
 	} 
     m_animateMolDialog->show();
+
+
+        
     return 0;
   } 
 
@@ -204,6 +213,85 @@ namespace Avogadro
     setFrame(1);
   }
 
+
+  
+  void LinMorphExtension::saveGlSnapshots(QString prefix)
+  {
+    // This function does not work.  NKF - 6/30/2008 
+    if (!m_widget) {
+      QMessageBox::warning( NULL, tr( "Avogadro" ),
+			    tr( "GL widget was not correctly initialized in order to save snapshots" ));
+      return;
+    }
+      
+    //computeConformers(m_secondMolecule);
+    for (int i=1; i<=m_frameCount; i++) {
+      setFrame(i);
+      QImage exportImage = m_widget->grabFrameBuffer( true );
+      QString ssfileName = prefix + QString::number(i) + ".png";
+      if ( !exportImage.save( ssfileName ) ) {
+	QMessageBox::warning( NULL, tr( "Avogadro" ),
+			      tr( "Cannot save file %1." ).arg( ssfileName ) );
+	return;
+      }
+    }
+  }
+
+
+  void LinMorphExtension::savePovSnapshots(QString prefix)
+  {
+    // use the current glWidge for things like camera
+    if (!m_widget) {
+      QMessageBox::warning( NULL, tr( "Avogadro" ),
+			    tr( "GL widget was not correctly initialized in order to save snapshots" ));
+      return;
+    }
+
+    computeConformers(m_secondMolecule);
+    if (m_frameCount != m_molecule->NumConformers()){
+      QMessageBox::warning( NULL, tr( "Avogadro" ),
+			    tr( "m_frameCount != numConformers" ) );
+      return;
+    }
+      
+  //
+    bool ok;
+    int w = m_widget->width();
+    int h = m_widget->height();
+    double defaultAspectRatio = static_cast<double>(w)/h;
+    double aspectRatio =
+      QInputDialog::getDouble(0,
+			      QObject::tr("Set Aspect Ratio"),
+			      QObject::tr("The current Avogadro scene is %1x%2 pixels large, "
+					  "and therefore has aspect ratio %3.\n"
+					  "You may keep this value, for example if you "
+					  "intend to use POV-Ray\n"
+					  "to produce an image of %4x1000 pixels, "
+					  "or you may enter any other positive value,\n"
+					  "for example 1 if you intend to use POV-Ray to "
+					  "produce a square image, "
+					  "like 1000x1000 pixels.")
+			      .arg(w).arg(h).arg(defaultAspectRatio)
+			      .arg(static_cast<int>(1000*defaultAspectRatio)),
+			      defaultAspectRatio,
+			      0.1,
+			      10,
+			      6,
+			      &ok);
+    
+    for (int i=1; i<=m_frameCount; i++) {
+      
+      setFrame(i);
+      QString ssfileName = prefix + QString::number(i) + ".pov";
+      
+            
+      if(ok)
+	POVPainterDevice pd( ssfileName, aspectRatio, m_widget );
+      
+    }
+  }
+
+    
   void LinMorphExtension::saveTrajFile(QString file) 
   {
     OBConversion conv;
