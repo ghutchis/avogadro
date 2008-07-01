@@ -50,9 +50,6 @@ namespace Avogadro {
 
       virtual QString menuPath(QAction *action) const;
 
-      
-      //!the current frame
-      int m_frameCount;
 
       virtual QList<QAction *> actions() const;
 
@@ -74,6 +71,9 @@ namespace Avogadro {
       QList<QAction *> m_actions;
       LinMorphDialog *m_linMorphDialog;
       QTimeLine *m_timeLine;
+      
+      //!the current frame
+      int m_frameCount;
 
     
    protected Q_SLOTS:

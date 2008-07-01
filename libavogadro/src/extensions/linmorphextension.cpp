@@ -21,6 +21,7 @@
  ***********************************************************************/
 
 #include "linmorphextension.h"
+
 #include <openbabel/obconversion.h>
 #include <avogadro/povpainter.h>
 
@@ -33,7 +34,7 @@ using namespace OpenBabel;
 
 namespace Avogadro
 {
-  LinMorphExtension::LinMorphExtension( QObject *parent ) :Extension( parent ), m_molecule(0), m_animateMolDialog(0), m_timeLine(0), m_frameCount(100) 
+  LinMorphExtension::LinMorphExtension( QObject *parent ) :Extension( parent ), m_molecule(0), m_linMorphDialog(0), m_timeLine(0), m_frameCount(100) 
   {  
     QAction *action = new QAction(this);
     action->setText(tr("Lin Morph..."));
@@ -251,7 +252,7 @@ namespace Avogadro
       return;
     }
 
-    computeConformers(m_secondMolecule);
+    //computeConformers(m_secondMolecule);
     if (m_frameCount != m_molecule->NumConformers()){
       QMessageBox::warning( NULL, tr( "Avogadro" ),
 			    tr( "m_frameCount != numConformers" ) );
