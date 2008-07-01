@@ -1,12 +1,31 @@
+/**********************************************************************
+  LinMorph - compute a lin morph and display given a second conformation 
+             of the current molecule
+
+  Copyright (C) 2008 by Naomi Fox
+
+  This file is part of the Avogadro molecular editor project.
+  For more information, see <http://avogadro.sourceforge.net/>
+
+  Some code is based on Open Babel
+  For more information, see <http://openbabel.sourceforge.net/>
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation version 2 of the License.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+ ***********************************************************************/
 
 #include "linmorphextension.h"
-
-#include <QAction>
-
-#include <QMessageBox>
-
 #include <openbabel/obconversion.h>
 #include <avogadro/povpainter.h>
+
+#include <QAction>
+#include <QMessageBox>
 #include <QInputDialog>
 
 using namespace std;
@@ -14,11 +33,8 @@ using namespace OpenBabel;
 
 namespace Avogadro
 {
-
-  //  LinMorphExtension::LinMorphExtension( QObject *parent ) : AnimateMolExtension( parent ), m_numFrames(100)  
   LinMorphExtension::LinMorphExtension( QObject *parent ) :Extension( parent ), m_molecule(0), m_animateMolDialog(0), m_timeLine(0), m_frameCount(100) 
-  {
-    
+  {  
     QAction *action = new QAction(this);
     action->setText(tr("Lin Morph..."));
     m_actions.append(action);
@@ -47,9 +63,9 @@ namespace Avogadro
     if (file.isEmpty())
       return;
 
-    //if (!m_secondMolecule) 
+    if (!m_secondMolecule) 
       m_secondMolecule = new Molecule;
-    //Molecule* mTemp = new Molecule;
+    
     OBConversion conv;
     OBFormat *inFormat = OBConversion::FormatFromExt(( file.toAscii() ).data() );        
     if ( !inFormat || !conv.SetInFormat( inFormat ) ) {
@@ -69,29 +85,21 @@ namespace Avogadro
     qDebug("LinMorphExtension::loadFile complete");
     computeConformers(m_secondMolecule);
 
-    
-    //    m_frameCount = m_molecule->NumConformers();
-    //m_animateMolDialog->setFrameCount(m_frameCount);
-    m_animateMolDialog->setFrame(1);
+    m_linMorphDialog->setFrame(1);
     m_timeLine->setFrameRange(1, m_frameCount);
-    setDuration(m_animateMolDialog->fps());
-
-   
-
+    setDuration(m_linMorphDialog->fps());
   }
 
   // allows us to set the intended menu path for each action
   QString LinMorphExtension::menuPath(QAction *) const
   {
     return tr("&Extensions");
-
   }
 
 
-     //! compute the conformers and set in molecule
+  //! compute the conformers and set in molecule
   void LinMorphExtension::computeConformers(Molecule* conformer2Mol){
     
-    //copied from OBForceField::SetConfor
     int k,l;
     vector<double*> conf;
     double* xyz = NULL;
@@ -99,12 +107,12 @@ namespace Avogadro
     if (conformer2Mol->NumAtoms() != m_molecule->NumAtoms()) {
       
       QMessageBox::warning( NULL, tr( "Avogadro" ),
-          tr( "Two molecules have different number atoms %1 %2" )
+			    tr( "Two molecules have different number atoms %1 %2" )
 			    .arg(m_molecule->NumAtoms()).arg( conformer2Mol->NumAtoms()));
       return;
-  }
-
-
+    }
+    
+    
     double* initCoords = m_molecule->GetCoordinates();
     double* finalCoords = conformer2Mol->GetCoordinates();
 
@@ -137,35 +145,35 @@ namespace Avogadro
 
   QUndoCommand* LinMorphExtension::performAction(QAction *, GLWidget* widget)
   {
-    qDebug( "LinMorphExtension::performAction()" );
-    
     m_widget = widget;
-
-    if (!m_animateMolDialog)
+    
+    if (!m_linMorphDialog)
       {
 	m_timeLine = new QTimeLine;
-	m_animateMolDialog = new LinMorphDialog;
+	m_linMorphDialog = new LinMorphDialog;
 	
-	connect(m_animateMolDialog, SIGNAL(fileName(QString)), this, SLOT(loadFile(QString)));
-	connect(m_animateMolDialog, SIGNAL(snapshotsPrefix(QString)), this, SLOT(savePovSnapshots(QString)));
-	connect(m_animateMolDialog, SIGNAL(sliderChanged(int)), this, SLOT(setFrame(int)));
-	connect(m_animateMolDialog, SIGNAL(fpsChanged(int)), this, SLOT(setDuration(int)));
-	connect(m_animateMolDialog, SIGNAL(loopChanged(int)), this, SLOT(setLoop(int)));
-	
-	connect(m_timeLine, SIGNAL(frameChanged(int)), this, SLOT(setFrame(int)));
-	
-
-
-	connect(m_animateMolDialog, SIGNAL(play()), m_timeLine, SLOT(start()));
-	connect(m_animateMolDialog, SIGNAL(pause()), m_timeLine, SLOT(stop()));
-	connect(m_animateMolDialog, SIGNAL(stop()), this, SLOT(stop()));
-	connect(m_animateMolDialog, SIGNAL(frameCountChanged(int)), this, SLOT(setFrameCount(int)));
-	
+	connect(m_linMorphDialog, SIGNAL(fileName(QString)), 
+		this, SLOT(loadFile(QString)));
+	connect(m_linMorphDialog, SIGNAL(snapshotsPrefix(QString)), 
+		this, SLOT(savePovSnapshots(QString)));
+	connect(m_linMorphDialog, SIGNAL(sliderChanged(int)), 
+		this, SLOT(setFrame(int)));
+	connect(m_linMorphDialog, SIGNAL(fpsChanged(int)), 
+		this, SLOT(setDuration(int)));
+	connect(m_linMorphDialog, SIGNAL(loopChanged(int)), 
+		this, SLOT(setLoop(int)));
+	connect(m_timeLine, SIGNAL(frameChanged(int)), 
+		this, SLOT(setFrame(int)));
+	connect(m_linMorphDialog, SIGNAL(play()), 
+		m_timeLine, SLOT(start()));
+	connect(m_linMorphDialog, SIGNAL(pause()), 
+		m_timeLine, SLOT(stop()));
+	connect(m_linMorphDialog, SIGNAL(stop()), 
+		this, SLOT(stop()));
+	connect(m_linMorphDialog, SIGNAL(frameCountChanged(int)), 
+		this, SLOT(setFrameCount(int)));
 	} 
-    m_animateMolDialog->show();
-
-
-        
+    m_linMorphDialog->show();
     return 0;
   } 
 
@@ -182,7 +190,7 @@ namespace Avogadro
   void LinMorphExtension::setFrameCount(int i)
   {
     m_frameCount = i;
-    m_animateMolDialog->setFrameCount(i);
+    m_linMorphDialog->setFrameCount(i);
     if (m_secondMolecule)
       computeConformers(m_secondMolecule);
   }
@@ -198,10 +206,7 @@ namespace Avogadro
 
   void LinMorphExtension::setFrame(int i)
   {
-    // if (m_timeLine->state() != QTimeLine::Running)
-    //  m_timeLine->setCurrentTime(m_timeLine->updateInterval() * i);
-
-    m_animateMolDialog->setFrame(i);
+    m_linMorphDialog->setFrame(i);
     m_molecule->SetConformer(i - 1);
     m_molecule->update();
   }
@@ -214,7 +219,6 @@ namespace Avogadro
   }
 
 
-  
   void LinMorphExtension::saveGlSnapshots(QString prefix)
   {
     // This function does not work.  NKF - 6/30/2008 
@@ -253,8 +257,7 @@ namespace Avogadro
 			    tr( "m_frameCount != numConformers" ) );
       return;
     }
-      
-  //
+
     bool ok;
     int w = m_widget->width();
     int h = m_widget->height();
@@ -264,13 +267,9 @@ namespace Avogadro
 			      QObject::tr("Set Aspect Ratio"),
 			      QObject::tr("The current Avogadro scene is %1x%2 pixels large, "
 					  "and therefore has aspect ratio %3.\n"
-					  "You may keep this value, for example if you "
-					  "intend to use POV-Ray\n"
-					  "to produce an image of %4x1000 pixels, "
-					  "or you may enter any other positive value,\n"
-					  "for example 1 if you intend to use POV-Ray to "
-					  "produce a square image, "
-					  "like 1000x1000 pixels.")
+					  "You may keep this value, for example if you intend to use POV-Ray\n"
+					  "to produce an image of %4x1000 pixels, or you may enter any other positive value,\n"
+					  "for example 1 if you intend to use POV-Ray to produce a square image, like 1000x1000 pixels.")
 			      .arg(w).arg(h).arg(defaultAspectRatio)
 			      .arg(static_cast<int>(1000*defaultAspectRatio)),
 			      defaultAspectRatio,
@@ -278,32 +277,20 @@ namespace Avogadro
 			      10,
 			      6,
 			      &ok);
-    
-    for (int i=1; i<=m_frameCount; i++) {
-      
-      setFrame(i);
-      QString ssfileName = prefix + QString::number(i) + ".pov";
-      
-            
-      if(ok)
+    if(ok) { 
+      for (int i=1; i<=m_frameCount; i++) {  
+	setFrame(i);
+	QString ssfileName = prefix + QString::number(i) + ".pov";
 	POVPainterDevice pd( ssfileName, aspectRatio, m_widget );
-      
+      }
+    }
+    else {
+      QMessageBox::warning( NULL, tr( "Avogadro" ),
+			    tr( "Problem setting aspect ratio.",
+				"No .pov files will be generated" ));
+      return;
     }
   }
-
-    
-  void LinMorphExtension::saveTrajFile(QString file) 
-  {
-    OBConversion conv;
-    conv.FormatFromExt((file.toAscii() ).data());
-    if (!conv.WriteFile(m_molecule, file.toStdString())) {
-       QMessageBox::warning( NULL, tr( "Avogadro" ),
-          tr( "Write trajectory file %1 failed." )
-          .arg( file ) );
-    }
-  }
-
-
 }
 #include "linmorphextension.moc"
 

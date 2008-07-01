@@ -1,7 +1,7 @@
 /**********************************************************************
-  AnimationDialog - Dialog for animation extension
+  LinMorphDialog - dialog for lin morph extension
 
-  Copyright (C) 2008 by Tim Vandermeersch
+  Copyright (C) 2008 by Naomi Fox
 
   This file is part of the Avogadro molecular editor project.
   For more information, see <http://avogadro.sourceforge.net/>
