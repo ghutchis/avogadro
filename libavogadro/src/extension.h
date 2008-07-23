@@ -26,9 +26,18 @@
 #define EXTENSION_H
 
 #include <avogadro/glwidget.h>
+#include "plugin.h"
 
 #include <QVector>
 #include <QSettings>
+#include <QtPlugin>
+
+#define AVOGADRO_EXTENSION_FACTORY(c,n,d) \
+  public: \
+    Plugin *createInstance(QObject *parent = 0) { return new c(parent); } \
+    Plugin::Type type() const { return Plugin::ExtensionType; }; \
+    QString name() const { return n; }; \
+    QString description() const { return d; }; 
 
 class QDockWidget;
 class QUndoCommand;
@@ -55,7 +64,7 @@ namespace Avogadro {
    * based on the required functionality of the extension and return
    * the command based on the action being peformed.
    */
-  class A_EXPORT Extension : public QObject
+  class A_EXPORT Extension : public QObject, public Plugin
   {
     Q_OBJECT
 
@@ -63,14 +72,16 @@ namespace Avogadro {
     Extension(QObject *parent) : QObject(parent) {};
     virtual ~Extension() {};
 
-    /** @return the name of the extension
-    */
-    virtual QString name() const;
+    /** 
+     * Plugin Type 
+     */
+    Plugin::Type type() const;
 
-    /** @return a brief description of what the extension does (e.g., tooltip)
-    */
-    virtual QString description() const;
-
+    /** 
+     * Plugin Type Name (Tools)
+     */
+    QString typeName() const;
+ 
     /**
      * @return a list of actions which this widget can perform
      */
@@ -118,23 +129,6 @@ namespace Avogadro {
 
   };
 
-  class ExtensionFactory
-  {
-    public:
-      /**
-       * Extension factory deconstructor.
-       */
-      virtual ~ExtensionFactory() {}
-
-      /**
-       * @return pointer to a new instance of an Engine subclass object
-       */
-      virtual Extension *createInstance(QObject *parent=0) = 0;
-  };
-
 } // end namespace Avogadro
-
-// Q_DECLARE_INTERFACE(Avogadro::Extension, "net.sourceforge.avogadro.extension/1.0")
-Q_DECLARE_INTERFACE(Avogadro::ExtensionFactory, "net.sourceforge.avogadro.extensionfactory/1.1")
 
 #endif

@@ -1,3 +1,130 @@
+2008-07-12  Tim Vandermeersch  <tim.vandermeersch@gmail.com>
+
+	* avogadro/src/addenginedialog.*: Use new PluginFactory class.
+	
+	* avogadro/src/enginecolorswidget.*: Use new ColorPlugin class.
+
+	* avogadro/src/main.cpp: Load the plugins here...
+
+	* avogadro/src/mainwindow.cpp: Remove call to
+	PluginManager::loadExtensions().
+	
+	* libavogadro/src/CMakeLists.txt: Statically link ElementColor in
+	libavogadro.
+
+	* libavogadro/src/color.h: Move settingsWidget() to ColorPlugin.
+
+	* libavogadro/src/elementcolor.*: Moved to colors/.
+
+	* libavogadro/src/engine.*: Use new Plugin base class.
+	
+	* libavogadro/src/engines/CMakeLists.txt: Add overlay engine.
+
+	* libavogadro/src/engines/*engine.h: Use new PluginFactory class.
+
+	* libavogadro/src/extension.*: Use new Plugin base class. 
+
+	* libavogadro/src/extensions/*extension.h: Use new PluginFactory
+	class.
+
+	* libavogadro/src/glwidget.*: Use new PluginFactory class.
+
+	* libavogadro/src/plugindialog.*: Use the PluginFactory's
+	descriptions. Added Colors to the combo box.
+
+	* libavogadro/src/pluginmanager.*: Load all plugins in the same
+	generic function, PluginFactory::type() is used to determine the
+	plugin type. 
+
+	* libavogadro/src/residuecolor.*: Moved to colors/.
+
+	* libavogadro/src/tool.*: Use new Plugin base class.
+
+	* libavogadro/src/toolgroup.cpp: Remove call to
+	PluginManager::loadTools().
+	
+	* libavogadro/src/tools/*tool.h: Use new PluginFactory
+	class.
+
+	* libavogadro/src/colorplugin.*: Add new ColorPlugin class for Color
+	plugins.
+
+	* libavogadro/src/colors/: New directory for color plugins.
+	ElementColor and ResidueColor can now be found here.
+	
+	* libavogadro/src/engines/overlayengine.*,
+	libavogadro/src/engines/overlaysettingswidget.ui: Replaces overlay
+	extension. There is an initial delay when creating the QPainter on the
+	QGLWidget... :(
+
+	* libavogadro/src/plugin.*: New Plugin base class.
+
+2008-07-10  Tim Vandermeersch  <tim.vandermeersch@gmail.com>
+
+	* libavogadro/src/pluginmanager.*: Added support for extensions.
+
+	* avogadro/src/mainwindow.cpp: Use PluginManager for extensions.
+
+2008-07-10  Tim Vandermeersch  <tim.vandermeersch@gmail.com>
+
+	Plugin Manager:
+	--------------
+	* libavogadro/src/pluginmanager.*: The PluginManager class. This class
+	is now a central class to handle the loading of plugins.
+
+	* libavogadro/src/pluginitemmodel.*: The PluginItemModel class.
+
+	* libavogadro/src/pluginlistview.*: The PluginListView class.
+
+	* libavogadro/src/plugindialog.*: The PluginManager dialog.
+
+	* libavogadro/src/glwidget.*: Use PluginManager. 
+
+	* libavogadro/src/toolgroup.cpp: Use PluginManager.
+
+	* avogadro/src/mainwindow.ui, avogadro/src/mainwindow.cpp: Use the 
+	PluginManager. Added the menu entry "Settings > Plugin Manager".
+
+	TODO: - Avogadro needs to be restarted at the moment in order
+	        for the changes to take effect.
+	      - Not yet used for extensions.
+	      - Better descriptions, download updates, ...
+
+	Compiling problems?
+	  - run cmake again to include the new *.h, *.cpp and *.ui files...
+	  - if mainwindow.cpp can't find <avogadro/pluginmanager.h>, copy the
+	    file to /usr/(local/)include/avogadro
+
+	Remove overlay extension:
+	------------------------
+	* libavogadro/src/extensions/CMakeLists.txt: Removed overlay
+	extension.
+	* libavogadro/src/extensions/overlayextension.*: Deleted.
+	* libavogadro/src/CMakeLists.txt: Include *.ui in the build.
+
+2008-07-07  Tim Vandermeersch  <tim.vandermeersch@gmail.com>
+
+	* sip/*: Initial attempt to make SIP python bindings.
+
+	* libavogadro/src/painter(device).h: export Painter and PainterDevice.
+	See sip/README for more info (revert if this is wrong)
+
+2008-07-04  Tim Vandermeersch  <tim.vandermeersch@gmail.com>
+
+	* avogadro/src/enginecolorswidget.*: Widget for setting an engine's
+	color map.
+
+	* avogadro/src/mainwindow.cpp: Add the color widget to engine settings
+	window.
+
+	* libavogadro/src/engine.cpp: emit changed() when
+	Engine::setColorMap() is called.
+
+2008-07-03  Marcus D. Hanwell  <marcus@cryos.org>
+
+	* libavogadro/src/engines/orbitalengine.cpp: Use some of the newer
+	OBGridData API - requires OpenBabel trunk/OpenBabel 2.2.0 release.
+
 2008-06-16  Tim Vandermeersch  <tim.vandermeersch@gmail.com>
 
 	* libavogadro/src/boost.h: Add extract_swig_wrapped_ptr to convert

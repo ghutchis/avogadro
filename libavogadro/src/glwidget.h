@@ -309,11 +309,6 @@ namespace Avogadro {
       QList<Engine *> engines() const;
 
       /**
-       * @return a list of the engine factories.
-       */
-      QList<EngineFactory *> engineFactories() const;
-
-      /**
        * Get the hits for a region starting at (x, y) of size (w * h).
        */
       QList<GLHit> hits(int x, int y, int w, int h);
@@ -641,11 +636,6 @@ namespace Avogadro {
        * Render a debug overlay with extra debug information on the GLWidget.
        */
       virtual void renderDebugOverlay();
-
-      /**
-       * Helper function to load all engine factories.
-       */
-      void loadEngineFactories();
 
       /**
        * This will return a painting condition that must be met each time

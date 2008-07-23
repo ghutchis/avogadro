@@ -74,13 +74,14 @@ namespace Avogadro {
     Molecule *m_Molecule;
   };
 
-  class UnitCellExtensionFactory : public QObject, public ExtensionFactory
+  class UnitCellExtensionFactory : public QObject, public PluginFactory
   {
-    Q_OBJECT
-    Q_INTERFACES(Avogadro::ExtensionFactory)
+      Q_OBJECT
+      Q_INTERFACES(Avogadro::PluginFactory)
 
-  public:
-    Extension *createInstance(QObject *parent = 0) { return new UnitCellExtension(parent); }
+      AVOGADRO_EXTENSION_FACTORY(UnitCellExtension,
+          tr("Unit Cell Extension"),
+          tr("Extension for building unit cells."))
   };
 
 } // end namespace Avogadro

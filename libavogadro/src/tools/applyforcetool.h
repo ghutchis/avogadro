@@ -24,7 +24,6 @@
 #ifndef APPLYFORCETOOL_H
 #define APPLYFORCETOOL_H
 
-//#include <eigen/vector.h>
 
 #include <avogadro/glwidget.h>
 #include <avogadro/tool.h>
@@ -106,15 +105,13 @@ namespace Avogadro {
   };
 
 
-  class ApplyForceToolFactory : public QObject, public ToolFactory
-    {
-      Q_OBJECT
-      Q_INTERFACES(Avogadro::ToolFactory)
-
-      public:
-        Tool *createInstance(QObject *parent = 0) { return new ApplyForceTool(parent); }
-    };
-
+  class ApplyForceToolFactory : public QObject, public PluginFactory
+  {
+    Q_OBJECT
+    Q_INTERFACES(Avogadro::PluginFactory)
+    AVOGADRO_TOOL_FACTORY(ApplyForceTool, tr("Apply Force Tool"), tr("Tool for getting force on atoms (moving atoms)."))
+  };
+  
 } // end namespace Avogadro
 
 #endif

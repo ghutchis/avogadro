@@ -31,6 +31,7 @@
 #include <QString>
 #include <QUndoCommand>
 #include <QListView>
+#include <QTreeView>
 
 namespace Avogadro {
 
@@ -74,29 +75,32 @@ namespace Avogadro {
       void namedSelections(GLWidget *widget);
   };
 
-  class SelectExtensionFactory : public QObject, public ExtensionFactory
-  {
-    Q_OBJECT
-    Q_INTERFACES(Avogadro::ExtensionFactory)
-
-    public:
-    Extension *createInstance(QObject *parent = 0) { return new SelectExtension(parent); }
-  };
-
-  class NamedSelectionView : public QListView
+  class SelectTreeView : public QTreeView
   {
     Q_OBJECT
 
      public:
-       explicit NamedSelectionView(GLWidget *widget, QWidget *parent = 0);
+       explicit SelectTreeView(GLWidget *widget, QWidget *parent = 0);
 
        void selectionChanged(const QItemSelection &selected, const QItemSelection &previous);
        void hideEvent(QHideEvent *event);
 
      private:
        GLWidget *m_widget;
- };
- 
+  };
+  
+  class SelectExtensionFactory : public QObject, public PluginFactory
+  {
+    Q_OBJECT
+    Q_INTERFACES(Avogadro::PluginFactory)
+
+    AVOGADRO_EXTENSION_FACTORY(SelectExtension,
+      tr("Select Extension"),
+      tr("Extension with various select actions."))
+
+  };
+
+
 } // end namespace Avogadro
 
 #endif

@@ -33,6 +33,7 @@
 
 #include "enginelistview.h"
 #include "engineprimitiveswidget.h"
+#include "enginecolorswidget.h"
 
 #include "icontabwidget.h"
 
@@ -40,6 +41,7 @@
 //#include "macchempasteboard.h"
 //#endif
 
+#include <avogadro/pluginmanager.h>
 #include <avogadro/camera.h>
 #include <avogadro/extension.h>
 #include <avogadro/primitive.h>
@@ -176,6 +178,7 @@ namespace Avogadro
 //    setUnifiedTitleAndToolBarOnMac(true);
 
     QSettings settings;
+
     d->tabbedTools = settings.value("tabbedTools", true).toBool();
 
     d->centralLayout = new QVBoxLayout(ui.centralWidget);
@@ -1511,6 +1514,9 @@ namespace Avogadro
     connect( ui.configureAvogadroAction, SIGNAL( triggered() ),
         this, SLOT( showSettingsDialog() ) );
 
+    connect( ui.pluginManagerAction, SIGNAL( triggered() ),
+        &pluginManager, SLOT( showDialog() ) );
+
     connect( ui.actionTutorials, SIGNAL( triggered() ), this, SLOT( openTutorialURL() ));
     connect( ui.actionFAQ, SIGNAL( triggered() ), this, SLOT( openFAQURL() ) );
     connect( ui.actionRelease_Notes, SIGNAL( triggered() ), this, SLOT( openReleaseNotesURL() ));
@@ -1688,6 +1694,7 @@ namespace Avogadro
     settings.setValue( "tabbedTools", d->tabbedTools );
     settings.setValue( "enginesDock", ui.enginesDock->saveGeometry());
 
+    // save the views
     settings.beginWriteArray("view");
     int count = d->glWidgets.size();
     for(int i=0; i<count; i++)
@@ -1697,118 +1704,99 @@ namespace Avogadro
     }
     settings.endArray();
 
+    // write the settings for every tool
     settings.beginGroup("tools");
     d->toolGroup->writeSettings(settings);
+    settings.endGroup();
+    
+    // write the plugin manager settings
+    settings.beginGroup("plugins");
+    pluginManager.writeSettings(settings);
     settings.endGroup();
   }
 
   void MainWindow::loadExtensions()
   {
-    QString prefixPath = QString(INSTALL_PREFIX) + '/'
-      + QString(INSTALL_LIBDIR) + "/avogadro/extensions";
-    QStringList pluginPaths;
-    pluginPaths << prefixPath;
-
-#ifdef WIN32
-	pluginPaths << QCoreApplication::applicationDirPath() + "/extensions";
-#endif
-
-    // Krazy: Use QProcess:
-    // http://doc.trolltech.com/4.3/qprocess.html#systemEnvironment
-    if (getenv("AVOGADRO_EXTENSIONS") != NULL) {
-      pluginPaths = QString(getenv("AVOGADRO_EXTENSIONS") ).split(':');
-    }
-
-    foreach(const QString& path, pluginPaths)
+    foreach(Extension *extension, pluginManager.extensions())
     {
-      QDir dir(path);
-      //      qDebug() << "SearchPath:" << dir.absolutePath() << endl;
-      foreach(const QString& fileName, dir.entryList(QDir::Files))
+      qDebug() << "Found Extension: " << extension->name() << " - "
+               << extension->description();
+
+      QList<QAction *> actions = extension->actions();
+
+      foreach(QAction *action, actions)
       {
-        QPluginLoader loader(dir.absoluteFilePath(fileName));
-        QObject *instance = loader.instance();
-        // qDebug() << "File: " << fileName;
-        ExtensionFactory *factory = qobject_cast<ExtensionFactory *>(instance);
-        if ( factory )
-        {
-          Extension *extension = factory->createInstance(this);
-          qDebug() << "Found Extension: " << extension->name() << " - "
-                   << extension->description();
+        // Here's the fun part, we go customize our menus
+        // Add these actions to the menu described by the menuPath
+        QString menuPathString = extension->menuPath(action);
+        QMenu *path = NULL;
 
-          QList<QAction *>actions = extension->actions();
+        if ( menuPathString.size() ) {
+          QStringList menuPath = menuPathString.split( ">" );
+          // Root menus are a special case, we need to check menuBar()
+          foreach( QAction *menu, menuBar()->actions() ) {
+            if ( menu->text() == menuPath.at( 0 ) ) {
+              path = menu->menu();
+              break;
+            }
+          }
+          
+          if ( !path ) {
+            // Gotta add a new root menu
+            path = new QMenu(menuPath.at( 0 ));
+            menuBar()->insertMenu( ui.menuSettings->menuAction(), path);
+          }
 
-          foreach(QAction *action, actions)
-          {
-            // Here's the fun part, we go customize our menus
-            // Add these actions to the menu described by the menuPath
-            QString menuPathString = extension->menuPath(action);
-            QMenu *path = NULL;
+          // Now handle submenus
+          if ( menuPath.size() > 1 ) {
+            QMenu *nextPath = NULL;
 
-            if ( menuPathString.size() ) {
-              QStringList menuPath = menuPathString.split( ">" );
-              // Root menus are a special case, we need to check menuBar()
-              foreach( QAction *menu, menuBar()->actions() ) {
-                if ( menu->text() == menuPath.at( 0 ) ) {
-                  path = menu->menu();
+            // Go through each submenu level, find the match
+            // and update the "path" pointer
+            for ( int i = 1; i < menuPath.size(); ++i ) {
+
+              foreach( QAction *menu, path->actions() ) {
+                if ( menu->text() == menuPath.at( i ) ) {
+                  nextPath = menu->menu();
                   break;
                 }
+              } // end checking menu items
+              
+              if ( !nextPath ) {
+                // add a new submenu
+                nextPath = path->addMenu( menuPath.at( i ) );
               }
-              if ( !path ) {
-                // Gotta add a new root menu
-                path = new QMenu(menuPath.at( 0 ));
-                menuBar()->insertMenu( ui.menuSettings->menuAction(), path);
-              }
-
-              // Now handle submenus
-              if ( menuPath.size() > 1 ) {
-                QMenu *nextPath = NULL;
-
-                // Go through each submenu level, find the match
-                // and update the "path" pointer
-                for ( int i = 1; i < menuPath.size(); ++i ) {
-
-                  foreach( QAction *menu, path->actions() ) {
-                    if ( menu->text() == menuPath.at( i ) ) {
-                      nextPath = menu->menu();
-                      break;
-                    }
-                  } // end checking menu items
-                  if ( !nextPath ) {
-                    // add a new submenu
-                    nextPath = path->addMenu( menuPath.at( i ) );
-                  }
-                  path = nextPath;
-                } // end looping through menuPath
-              } // endif
-            }
-
-            if(!path)
-            {
-              path = ui.menuExtensions;
-            }
-
-            path->addAction( action );
-            connect( action, SIGNAL( triggered() ), this, SLOT( actionTriggered() ) );
-          }
-
-          QDockWidget *dockWidget = extension->dockWidget();
-          if(dockWidget)
-          {
-            addDockWidget(Qt::RightDockWidgetArea, dockWidget);
-            ui.menuDocks->addAction(dockWidget->toggleViewAction());
-          }
-
-          connect(this, SIGNAL( moleculeChanged(Molecule*)),
-                  extension, SLOT(setMolecule(Molecule*)));
-          // When loading a molecule with an already open window with another
-          // molecule this signal is never triggered. If we already have a
-          // molecule at the point of loading then set it for the extension
-          if (d->molecule)
-            extension->setMolecule(d->molecule);
-          connect(extension, SIGNAL( message(QString)),
-                  d->messagesText, SLOT(append(QString)));
+              
+              path = nextPath;
+            } // end looping through menuPath
+          } // endif
         }
+
+        if(!path) {
+          path = ui.menuExtensions;
+        }
+
+        path->addAction( action );
+        connect( action, SIGNAL( triggered() ), this, SLOT( actionTriggered() ) );
       }
+
+      QDockWidget *dockWidget = extension->dockWidget();
+      if(dockWidget)
+      {
+        addDockWidget(Qt::RightDockWidgetArea, dockWidget);
+        ui.menuDocks->addAction(dockWidget->toggleViewAction());
+      }
+
+      connect(this, SIGNAL( moleculeChanged(Molecule*)),
+              extension, SLOT(setMolecule(Molecule*)));
+      // When loading a molecule with an already open window with another
+      // molecule this signal is never triggered. If we already have a
+      // molecule at the point of loading then set it for the extension
+      if (d->molecule)
+        extension->setMolecule(d->molecule);
+
+      connect(extension, SIGNAL( message(QString)),
+            d->messagesText, SLOT(append(QString)));
     }
   }
 
@@ -1956,7 +1944,7 @@ namespace Avogadro
 //        primitivesWidget, SLOT( setEngine( Engine * ) ) );
 
     // Warn the user if no engines or tools are loaded
-    int nEngines = d->glWidget->engineFactories().size() - 1;
+    int nEngines = pluginManager.engineFactories().size() - 1;
     int nTools = d->glWidget->toolGroup()->tools().size();
     QString error;
     if(!nEngines && !nTools)
@@ -1990,6 +1978,10 @@ namespace Avogadro
           new EnginePrimitivesWidget(d->glWidget, settingsWindow);
     primitivesWidget->setEngine(d->currentSelectedEngine);
     settingsTabs->addTab(primitivesWidget, tr("Objects"));
+    
+    EngineColorsWidget *colorsWidget = new EngineColorsWidget(settingsWindow);
+    colorsWidget->setEngine(d->currentSelectedEngine);
+    settingsTabs->addTab(colorsWidget, tr("Colors"));
 
     layout->addWidget(settingsTabs);
     settingsWindow->setLayout(layout);
@@ -1998,7 +1990,7 @@ namespace Avogadro
 
   void MainWindow::addEngineClicked()
   {
-    Engine *engine =  AddEngineDialog::getEngine(this, d->glWidget->engineFactories());
+    Engine *engine =  AddEngineDialog::getEngine(this, pluginManager.engineFactories());
     if(engine) {
       PrimitiveList p = d->glWidget->selectedPrimitives();
       if(!p.size()) {
@@ -2032,7 +2024,7 @@ namespace Avogadro
           } else {
             newEngine->setPrimitives(d->glWidget->primitives());
           }
-          newEngine->setName(newEngine->name() + tr(" copy"));
+          newEngine->setAlias(newEngine->alias() + tr(" copy"));
           d->glWidget->addEngine(newEngine);
         }
         break;

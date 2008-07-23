@@ -63,14 +63,15 @@ namespace Avogadro
 
   };
 
-  class GaussianExtensionFactory : public QObject, public ExtensionFactory
+  class GaussianExtensionFactory : public QObject, public PluginFactory
   {
     Q_OBJECT
-    Q_INTERFACES(Avogadro::ExtensionFactory)
-
-    public:
-      Extension *createInstance(QObject *parent = 0)
-      { return new GaussianExtension(parent); }
+    Q_INTERFACES(Avogadro::PluginFactory)
+    AVOGADRO_EXTENSION_FACTORY(GaussianExtension,
+        tr("Gaussian Extension"),
+        tr("Extension for creating input files for the Gaussian"
+          " quantum chemistry package."))
+ 
   };
 
 } // End namespace Avogadro

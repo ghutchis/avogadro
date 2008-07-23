@@ -51,9 +51,14 @@ namespace Avogadro {
     delete d;
   }
 
-  QString Tool::description() const
-  {
-    return QObject::tr("No Description");
+  Plugin::Type Tool::type() const
+  { 
+    return Plugin::ToolType; 
+  }
+  
+  QString Tool::typeName() const
+  { 
+    return tr("Tools"); 
   }
 
   QAction* Tool::activateAction() const {

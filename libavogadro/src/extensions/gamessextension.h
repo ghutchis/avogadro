@@ -110,13 +110,13 @@ namespace Avogadro {
 
   };
 
-  class GamessExtensionFactory : public QObject, public ExtensionFactory
+  class GamessExtensionFactory : public QObject, public PluginFactory
   {
-    Q_OBJECT
-    Q_INTERFACES(Avogadro::ExtensionFactory)
+      Q_OBJECT
+      Q_INTERFACES(Avogadro::PluginFactory)
 
-    public:
-      Extension *createInstance(QObject *parent = 0) { return new GamessExtension(parent); }
+      AVOGADRO_EXTENSION_FACTORY(GamessExtension, tr("GAMESS Extension"), tr("Extension for creating input files for the GAMESS"
+          " quantum chemistry package."))
   };
 
 } // end namespace Avogadro

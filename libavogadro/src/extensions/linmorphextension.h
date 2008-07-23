@@ -92,13 +92,11 @@ namespace Avogadro {
                   
   };
 
-  class LinMorphExtensionFactory : public QObject, public ExtensionFactory
+  class LinMorphExtensionFactory : public QObject, public PluginFactory
   {
     Q_OBJECT
-    Q_INTERFACES(Avogadro::ExtensionFactory)
-
-    public:
-      Extension *createInstance(QObject *parent = 0) { return new LinMorphExtension(parent); }
+    Q_INTERFACES(Avogadro::PluginFactory)  
+    AVOGADRO_EXTENSION_FACTORY(LinMorphExtension, tr("LinMorph Extension"), tr("Extension for producing LinMorph trajectories."))
   };
 
 }

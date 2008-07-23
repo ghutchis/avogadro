@@ -1,7 +1,6 @@
 /**********************************************************************
-  ElementColor - Default class for coloring atoms based on element
+ ElementColor - Default class for coloring atoms based on element
 
-  Copyright (C) 2006 Benoit Jacob
   Copyright (C) 2007 Geoffrey R. Hutchison
 
   This file is part of the Avogadro molecular editor project.
@@ -23,35 +22,55 @@
   02110-1301, USA.
  **********************************************************************/
 
-#ifndef ELEMENTCOLOR_H
-#define ELEMENTCOLOR_H
+#include "elementcolor.h"
 
-#include <avogadro/global.h>
-#include <avogadro/color.h>
+#include <config.h>
+#include <avogadro/primitive.h>
+#include <QtPlugin>
+
+using namespace OpenBabel;
 
 namespace Avogadro {
 
-  /**
-   * @class ElementColor elementcolor.h <avogadro/elementcolor.h>
-   * @brief Default atom color scheme based on periodic table
-   * @author Geoff Hutchison
-   *
-   * Map atom colors based on elements: Carbon = Grey, Oxygen = Red, etc.
-   */
-  class A_EXPORT ElementColor: public Color
-  {
-  public:
-    ElementColor();
-    virtual ~ElementColor();
+  //ElementColorPlugin::ElementColorPlugin(QObject *parent) : ColorPlugin(parent)
+  //{
+    //m_color = new ElementColor();
+  //}
+  
+  //ElementColorPlugin::~ElementColorPlugin()
+  //{
+    //delete m_color;
+  //}
+  
+  //Color* ElementColorPlugin::color() const
+  //{
+    //return m_color;
+  //}
 
-    /**
-     * Set the color based on the supplied Primitive
-     * If NULL is passed, do nothing */
-    virtual void set(const Primitive *);
-    
-    virtual QString type() const { return "Color by Element"; }
-  };
+  /// Constructor
+  ElementColor::ElementColor()
+  { }
+
+  // Destructor
+  ElementColor::~ElementColor()
+  { }
+
+  void ElementColor::set(const Primitive *p)
+  {
+    if (!p || p->type() != Primitive::AtomType)
+      return;
+
+    const Atom *atom = static_cast<const Atom*>(p);
+    std::vector<double> rgb = etab.GetRGB( atom->GetAtomicNum() );
+    m_red = rgb[0];
+    m_green = rgb[1];
+    m_blue = rgb[2];
+    m_alpha = 1.0;
+  }
 
 }
 
-#endif
+#include "elementcolor.moc"
+
+//this is a static color plugin...
+//Q_EXPORT_PLUGIN2(elementcolor, Avogadro::ElementColorFactory)

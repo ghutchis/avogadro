@@ -99,11 +99,11 @@ namespace Avogadro {
   };
   */
   //! Generates instances of our ForceEngine class
-  class ForceEngineFactory : public QObject, public EngineFactory
+  class ForceEngineFactory : public QObject, public PluginFactory
   {
     Q_OBJECT
-    Q_INTERFACES(Avogadro::EngineFactory)
-    AVOGADRO_ENGINE_FACTORY(ForceEngine)
+    Q_INTERFACES(Avogadro::PluginFactory)
+    AVOGADRO_ENGINE_FACTORY(ForceEngine, tr("Render forces from force fields."))
   };
 
 } // end namespace Avogadro

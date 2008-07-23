@@ -26,6 +26,7 @@
 #define RESIDUECOLOR_H
 
 #include <avogadro/global.h>
+#include <avogadro/plugin.h>
 #include <avogadro/color.h>
 
 namespace Avogadro {
@@ -38,7 +39,7 @@ namespace Avogadro {
    * This class maps colors based on residues
    * http://jmol.sourceforge.net/jscolors/
    */
-  class A_EXPORT ResidueColor: public Color
+  class ResidueColor: public Color
   {
   public:
     ResidueColor();
@@ -49,8 +50,31 @@ namespace Avogadro {
      * If NULL is passed, do nothing */
     virtual void set(const Primitive *);
 
-    virtual QString type() const { return "Color by Residue"; }
+    virtual QString name() const { return "Color by Residue"; }
   };
+
+  /*class ResidueColorPlugin : public ColorPlugin*/
+  /*{*/
+    /*public:*/
+      /*ResidueColorPlugin(QObject *parent = 0);*/
+      /*~ResidueColorPlugin();*/
+
+      /*QString name() const { return(tr("Color by Residue")); }*/
+      /*Color* color() const;*/
+
+    /*private:*/
+      /*Color *m_color;*/
+  /*};*/
+
+  class ResidueColorFactory : public QObject, public PluginFactory
+  {
+    Q_OBJECT
+    Q_INTERFACES(Avogadro::PluginFactory)
+    AVOGADRO_COLOR_FACTORY(ResidueColor, 
+        tr("Color by Residue"), 
+        tr("Color by Residue."))
+  };
+
 
 }
 
