@@ -80,9 +80,18 @@ set(manipulatetool_SRCS manipulatetool.cpp)
 qt4_add_resources(manipulatetool_RC_SRCS manipulatetool.qrc)
 qt4_automoc(${manipulatetool_SRCS})
 add_library(manipulatetool MODULE eyecandy.cpp
-    ${manipulatetool_SRCS} ${manipulatetool_RC_SRCS})
+  ${manipulatetool_SRCS} ${manipulatetool_RC_SRCS})
 target_link_libraries(manipulatetool ${LINK_LIBS})
 install(TARGETS manipulatetool DESTINATION ${DESTINATION_DIR})
+
+### applyforcetool
+set(applyforcetool_SRCS applyforcetool.cpp )
+qt4_add_resources(applyforcetool_RC_SRCS applyforcetool.qrc)
+qt4_automoc(${applyforcetool_SRCS})
+add_library(applyforcetool MODULE 
+  ${applyforcetool_SRCS} ${applyforcetool_RC_SRCS})
+target_link_libraries(applyforcetool ${LINK_LIBS})
+install(TARGETS applyforcetool DESTINATION ${DESTINATION_DIR})
 
 ### autorotatetool
 set(autorotatetool_SRCS autorotatetool.cpp)

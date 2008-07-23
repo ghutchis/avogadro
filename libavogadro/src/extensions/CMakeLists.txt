@@ -22,11 +22,11 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 set(LINK_LIBS "avogadro-lib")
 
 ### Template extension - template for extensions
-set(templateextension_SRCS templateextension.cpp)
-qt4_automoc(${templateextension_SRCS})
-add_library(templateextension MODULE ${templateextension_SRCS})
-target_link_libraries(templateextension ${LINK_LIBS})
-install(TARGETS templateextension DESTINATION ${DESTINATION_DIR})
+#set(templateextension_SRCS templateextension.cpp)
+#qt4_automoc(${templateextension_SRCS})
+#add_library(templateextension MODULE ${templateextension_SRCS})
+#target_link_libraries(templateextension ${LINK_LIBS})
+#install(TARGETS templateextension DESTINATION ${DESTINATION_DIR})
 
 ### 2D overlay extensions
 set(overlayextension_SRCS overlayextension.cpp)
@@ -36,34 +36,34 @@ target_link_libraries(overlayextension ${LINK_LIBS})
 install(TARGETS overlayextension DESTINATION ${DESTINATION_DIR})
 
 ### gamess
-#set(gamessextension_SRCS gamessextension.cpp
-#  gamessinputdialog.cpp
-#  gamessinputdata.cpp
-#  gamessefpmatchdialog.cpp
-#)
-#qt4_wrap_ui(gamessextension_UIS_H gamessinputdialog.ui gamessefpmatchdialog.ui)
-#qt4_automoc(${gamessextension_SRCS})
-#add_library(gamessextension MODULE ${gamessextension_SRCS} ${gamessextension_UIS_H})
-#target_link_libraries(gamessextension ${LINK_LIBS})
-#install(TARGETS gamessextension DESTINATION ${DESTINATION_DIR})
+set(gamessextension_SRCS gamessextension.cpp
+  gamessinputdialog.cpp
+  gamessinputdata.cpp
+  gamessefpmatchdialog.cpp
+)
+qt4_wrap_ui(gamessextension_UIS_H gamessinputdialog.ui gamessefpmatchdialog.ui)
+qt4_automoc(${gamessextension_SRCS})
+add_library(gamessextension MODULE ${gamessextension_SRCS} ${gamessextension_UIS_H})
+target_link_libraries(gamessextension ${LINK_LIBS})
+install(TARGETS gamessextension DESTINATION ${DESTINATION_DIR})
 
 ### Properties
-#set(propextension_SRCS propmodel.cpp propextension.cpp)
-#qt4_automoc(${propextension_SRCS})
-#add_library(propextension MODULE ${propextension_SRCS} ${propextension_UIS_H})
-#target_link_libraries(propextension ${LINK_LIBS})
-#install(TARGETS propextension DESTINATION ${DESTINATION_DIR})
+set(propextension_SRCS propmodel.cpp propextension.cpp)
+qt4_automoc(${propextension_SRCS})
+add_library(propextension MODULE ${propextension_SRCS} ${propextension_UIS_H})
+target_link_libraries(propextension ${LINK_LIBS})
+install(TARGETS propextension DESTINATION ${DESTINATION_DIR})
 
 ### Molecular Mechanics force fields
-#set(forcefieldextension_SRCS forcefieldextension.cpp forcefielddialog.cpp
-#  constraintsdialog.cpp constraintsmodel.cpp conformersearchdialog.cpp)
-#qt4_wrap_ui(forcefieldextension_UIS_H forcefielddialog.ui constraintsdialog.ui
-#  conformersearchdialog.ui)
-#qt4_automoc(${forcefieldextension_SRCS})
-#add_library(forcefieldextension MODULE ${forcefieldextension_SRCS}
-#  ${forcefieldextension_UIS_H})
-#target_link_libraries(forcefieldextension ${LINK_LIBS})
-#install(TARGETS forcefieldextension DESTINATION ${DESTINATION_DIR})
+set(forcefieldextension_SRCS forcefieldextension.cpp forcefielddialog.cpp
+  constraintsdialog.cpp constraintsmodel.cpp conformersearchdialog.cpp)
+qt4_wrap_ui(forcefieldextension_UIS_H forcefielddialog.ui constraintsdialog.ui
+  conformersearchdialog.ui)
+qt4_automoc(${forcefieldextension_SRCS})
+add_library(forcefieldextension MODULE ${forcefieldextension_SRCS}
+  ${forcefieldextension_UIS_H})
+target_link_libraries(forcefieldextension ${LINK_LIBS})
+install(TARGETS forcefieldextension DESTINATION ${DESTINATION_DIR})
 
 ### Docking
 ###set(dockingextension_SRCS dockingextension.cpp liganddialog.cpp pocketdialog.cpp)
@@ -80,27 +80,26 @@ install(TARGETS overlayextension DESTINATION ${DESTINATION_DIR})
 
 
 ### hydrogens
-#set(hydrogensextension_SRCS hydrogensextension.cpp)
-#qt4_automoc(${hydrogensextension_SRCS})
-#add_library(hydrogensextension MODULE ${hydrogensextension_SRCS})
-#target_link_libraries(hydrogensextension ${LINK_LIBS})
-#install(TARGETS hydrogensextension DESTINATION ${DESTINATION_DIR})
+set(hydrogensextension_SRCS hydrogensextension.cpp)
+qt4_automoc(${hydrogensextension_SRCS})
+add_library(hydrogensextension MODULE ${hydrogensextension_SRCS})
+target_link_libraries(hydrogensextension ${LINK_LIBS})
+install(TARGETS hydrogensextension DESTINATION ${DESTINATION_DIR})
 
 ### Selections
-
-#set(selectextension_SRCS selectextension.cpp)
-#qt4_automoc(${selectextension_SRCS})
-#add_library(selectextension MODULE ${selectextension_SRCS})
-#target_link_libraries(selectextension ${LINK_LIBS})
-#install(TARGETS selectextension DESTINATION ${DESTINATION_DIR})
+set(selectextension_SRCS selectextension.cpp namedselectionmodel.cpp)
+qt4_automoc(${selectextension_SRCS})
+add_library(selectextension MODULE ${selectextension_SRCS})
+target_link_libraries(selectextension ${LINK_LIBS})
+install(TARGETS selectextension DESTINATION ${DESTINATION_DIR})
 
 ### unit cells
-#set(unitcellextension_SRCS unitcellextension.cpp unitcellparamdialog.cpp)
-#qt4_wrap_ui(unitcellextension_UIS_H unitcellparamdialog.ui)
-#qt4_automoc(${unitcellextension_SRCS})
-#add_library(unitcellextension MODULE ${unitcellextension_SRCS} ${unitcellextension_UIS_H})
-#target_link_libraries(unitcellextension ${LINK_LIBS})
-#install(TARGETS unitcellextension DESTINATION ${DESTINATION_DIR})
+set(unitcellextension_SRCS unitcellextension.cpp unitcellparamdialog.cpp)
+qt4_wrap_ui(unitcellextension_UIS_H unitcellparamdialog.ui)
+qt4_automoc(${unitcellextension_SRCS})
+add_library(unitcellextension MODULE ${unitcellextension_SRCS} ${unitcellextension_UIS_H})
+target_link_libraries(unitcellextension ${LINK_LIBS})
+install(TARGETS unitcellextension DESTINATION ${DESTINATION_DIR})
 
 ### super cell builder
 set(supercellextension_SRCS supercellbuilder.cpp supercelldialog.cpp)
@@ -111,11 +110,11 @@ target_link_libraries(supercellextension ${LINK_LIBS})
 install(TARGETS supercellextension DESTINATION ${DESTINATION_DIR})
 
 ### h->methyl
-#set(h2methylextension_SRCS h2methylextension.cpp)
-#qt4_automoc(${h2methylextension_SRCS})
-#add_library(h2methylextension MODULE ${h2methylextension_SRCS})
-#target_link_libraries(h2methylextension ${LINK_LIBS})
-#install(TARGETS h2methylextension DESTINATION ${DESTINATION_DIR})
+set(h2methylextension_SRCS h2methylextension.cpp)
+qt4_automoc(${h2methylextension_SRCS})
+add_library(h2methylextension MODULE ${h2methylextension_SRCS})
+target_link_libraries(h2methylextension ${LINK_LIBS})
+install(TARGETS h2methylextension DESTINATION ${DESTINATION_DIR})
 
 ### WiiTrack
 #set(wiitrackextension_SRCS wiitrackextension.cpp)
@@ -132,36 +131,41 @@ install(TARGETS supercellextension DESTINATION ${DESTINATION_DIR})
 #INSTALL(TARGETS wiitrackextension DESTINATION ${DESTINATION_DIR})
 
 ### Orbitals
-#set(orbitalextension_SRCS orbitalextension.cpp orbitaldialog.cpp
-#    basisset.cpp gaussianfchk.cpp)
-#qt4_wrap_ui(orbitalextension_UIS_H orbitaldialog.ui)
-#qt4_automoc(${orbitalextension_SRCS})
-#add_library(orbitalextension MODULE ${orbitalextension_SRCS} ${orbitalextension_UIS_H})
-#target_link_libraries(orbitalextension ${LINK_LIBS})
-#install(TARGETS orbitalextension DESTINATION ${DESTINATION_DIR})
+set(orbitalextension_SRCS orbitalextension.cpp orbitaldialog.cpp
+    basisset.cpp gaussianfchk.cpp)
+qt4_wrap_ui(orbitalextension_UIS_H orbitaldialog.ui)
+qt4_automoc(${orbitalextension_SRCS})
+add_library(orbitalextension MODULE ${orbitalextension_SRCS} ${orbitalextension_UIS_H})
+target_link_libraries(orbitalextension ${LINK_LIBS})
+install(TARGETS orbitalextension DESTINATION ${DESTINATION_DIR})
 
 ### Gaussian input deck generator
-#set(gaussianextension_SRCS gaussianextension.cpp gaussianinputdialog.cpp)
-#qt4_wrap_ui(gaussianextension_UIS_H gaussianinputdialog.ui)
-#qt4_automoc(${gaussianextension_SRCS})
-#add_library(gaussianextension MODULE ${gaussianextension_SRCS} ${gaussianextension_UIS_H})
-#target_link_libraries(gaussianextension ${LINK_LIBS})
-#install(TARGETS gaussianextension DESTINATION ${DESTINATION_DIR})
+set(gaussianextension_SRCS gaussianextension.cpp 
+	gaussianinputdialog.cpp
+	qcheminputdialog.cpp)
+qt4_wrap_ui(gaussianextension_UIS_H 
+	gaussianinputdialog.ui
+	qcheminputdialog.ui)
+qt4_automoc(${gaussianextension_SRCS})
+add_library(gaussianextension MODULE ${gaussianextension_SRCS}
+	${gaussianextension_UIS_H})
+target_link_libraries(gaussianextension ${LINK_LIBS})
+install(TARGETS gaussianextension DESTINATION ${DESTINATION_DIR})
 
-#if(BOOST_PYTHON_FOUND OR Boost_PYTHON_FOUND)
+if(BOOST_PYTHON_FOUND OR Boost_PYTHON_FOUND)
 	### python extensions
-#	message(STATUS "Enabled python extension")
-#	set(pythonextension_SRCS pythonextension.cpp)
-#	qt4_wrap_ui(pythonextension_UIS_H pythonterminalwidget.ui)
-#	qt4_automoc(${pythonextension_SRCS})
-#	add_library(pythonextension MODULE ${pythonextension_SRCS}
-#		${pythonextension_UIS_H})
-#	target_link_libraries(pythonextension ${LINK_LIBS})
-#	install(TARGETS pythonextension DESTINATION ${DESTINATION_DIR})
-#
-#	file(GLOB python_SCRIPTS "python/*.py")
-#	install(FILES ${python_SCRIPTS} DESTINATION share/libavogadro/scripts)
-#endif(BOOST_PYTHON_FOUND OR Boost_PYTHON_FOUND)
+	message(STATUS "Enabled python extension")
+	set(pythonextension_SRCS pythonextension.cpp)
+	qt4_wrap_ui(pythonextension_UIS_H pythonterminalwidget.ui)
+	qt4_automoc(${pythonextension_SRCS})
+	add_library(pythonextension MODULE ${pythonextension_SRCS}
+		${pythonextension_UIS_H})
+	target_link_libraries(pythonextension ${LINK_LIBS})
+	install(TARGETS pythonextension DESTINATION ${DESTINATION_DIR})
+
+	file(GLOB python_SCRIPTS "python/*.py")
+	install(FILES ${python_SCRIPTS} DESTINATION share/libavogadro/scripts)
+endif(BOOST_PYTHON_FOUND OR Boost_PYTHON_FOUND)
 
 ### Animation
 set(animationextension_SRCS animationextension.cpp animationdialog.cpp)
@@ -173,18 +177,7 @@ add_library(animationextension MODULE ${animationextension_SRCS}
 target_link_libraries(animationextension ${LINK_LIBS})
 install(TARGETS animationextension DESTINATION ${DESTINATION_DIR})
 
-
-
-
-#set(linmorphextension_SRCS linmorphextension.cpp animatemoldialog.cpp )
-#qt4_add_resources(linmorphextension_RC_SRCS animatemol.qrc)
-#qt4_wrap_ui(animatemoldialog_UIS_H animatemoldialog.ui)
-#qt4_automoc(${linmorphextension_SRCS})
-#add_library(linmorphextension MODULE ${linmorphextension_SRCS}
-#  ${animatemoldialog_UIS_H} ${linmorphextension_RC_SRCS} ) 
-#target_link_libraries(linmorphextension ${LINK_LIBS})
-#install(TARGETS linmorphextension DESTINATION ${DESTINATION_DIR})
-
+### LinMorph
 set(linmorphextension_SRCS linmorphextension.cpp linmorphdialog.cpp )
 qt4_add_resources(linmorphextension_RC_SRCS linmorph.qrc)
 qt4_wrap_ui(linmorphdialog_UIS_H linmorphdialog.ui)
