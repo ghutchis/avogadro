@@ -75,8 +75,10 @@ namespace Avogadro {
       //!the current frame
       int m_frameCount;
 
+      
     
    protected Q_SLOTS:
+      void saveMovie(QString movieFileName);
       void saveGlSnapshots(QString prefix);
       void savePovSnapshots(QString prefix);
       void setDuration(int i);
@@ -89,6 +91,7 @@ namespace Avogadro {
       
   private:
       virtual void computeConformers(Molecule* conformer2Mol);
+
                   
   };
 

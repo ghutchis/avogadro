@@ -34,7 +34,7 @@ using namespace OpenBabel;
 
 namespace Avogadro
 {
-  LinMorphExtension::LinMorphExtension( QObject *parent ) :Extension( parent ), m_molecule(0), m_linMorphDialog(0), m_timeLine(0), m_frameCount(100) 
+  LinMorphExtension::LinMorphExtension( QObject *parent ) :Extension( parent ), m_molecule(0), m_linMorphDialog(0), m_timeLine(0), m_frameCount(100), m_secondMolecule(0)
   {  
     QAction *action = new QAction(this);
     action->setText(tr("Lin Morph..."));
@@ -43,6 +43,7 @@ namespace Avogadro
     action = new QAction( this );
     action->setSeparator(true);
     m_actions.append(action);
+
   }
 
   LinMorphExtension::~LinMorphExtension()
@@ -157,6 +158,8 @@ namespace Avogadro
 		this, SLOT(loadFile(QString)));
 	connect(m_linMorphDialog, SIGNAL(snapshotsPrefix(QString)), 
 		this, SLOT(savePovSnapshots(QString)));
+	connect(m_linMorphDialog, SIGNAL(movieFileInfo(QString)), 
+		this, SLOT(saveMovie(QString)));
 	connect(m_linMorphDialog, SIGNAL(sliderChanged(int)), 
 		this, SLOT(setFrame(int)));
 	connect(m_linMorphDialog, SIGNAL(fpsChanged(int)), 
@@ -243,6 +246,88 @@ namespace Avogadro
   }
 
 
+  //movieFileName is the full filename (with full path)
+  void LinMorphExtension::saveMovie(QString movieFileName) {
+
+    //executable for povray
+    const QString povrayexe = "povray ";
+    //executable for mencoder
+    const QString mencoderexe = "mencoder -ovc lavc -lavcopts vcodec=mpeg4 -of avi -o ";
+    
+    if (movieFileName.isEmpty()) {
+      QMessageBox::warning( NULL, tr( "Avogadro" ),
+			    tr( "Must specify a valid .avi file name" ));
+      return;
+    }
+    
+    if (!movieFileName.endsWith(".avi")){
+      QMessageBox::warning( NULL, tr( "Avogadro" ),
+			    tr( "Adding .avi extension" ));
+      movieFileName = movieFileName + ".avi";
+    }
+    
+    // use the current glWidge for things like camera
+    if (!m_widget) {
+      QMessageBox::warning( NULL, tr( "Avogadro" ),
+			    tr( "GL widget was not correctly initialized in order to save movie" ));
+      return;
+    }
+    
+    //first, split out the directory and filenames
+    QString dir, fileName, prefix;
+
+    int slashPos = movieFileName.lastIndexOf("/");
+    
+    if (slashPos < 0) {
+      QMessageBox::warning( NULL, tr( "Avogadro" ),
+			    tr( "Invalid movie filename.  Must include full directory path" ));
+      return;
+    }
+
+    dir = movieFileName.left(slashPos) + "/"; 
+    fileName = movieFileName.right(movieFileName.length() - (slashPos+1));
+    if (fileName.isEmpty()) {
+      QMessageBox::warning( NULL, tr( "Avogadro" ),
+			    tr( "Invalid movie filename.  Must include full directory path and name, ending with .avi" ));
+      return;
+    }
+    
+    //if (fileName.endsWith(".avi")) {
+    prefix = fileName.left(fileName.length() - 4);
+    
+
+    //Make the directory where the snapshots will be saved
+    QString snapshotsDir = dir + prefix + "/";
+    QString mkdirCommand = "mkdir " + snapshotsDir;
+    system(mkdirCommand.toStdString().c_str());
+
+    //Make PovSnapShots
+    savePovSnapshots(snapshotsDir + prefix);
+
+    //Run PovRay
+    QString pngFiles;
+    for (int i=1; i<=m_frameCount; i++) {
+      QString povFileName = prefix + QString::number(i) + ".pov";
+      QString pngFileName = prefix + QString::number(i) + ".png";
+      QString povRayCommand = "cd " +  snapshotsDir + 
+	" && " + povrayexe + " " + povFileName; 
+      //QMessageBox::warning( NULL, tr( "Avogadro" ), povRayCommand);
+      system(povRayCommand.toStdString().c_str());
+      
+      pngFiles += pngFileName + ",";
+    }
+    //strip off extra comma
+    pngFiles = pngFiles.left(pngFiles.length()-1);
+    
+
+    //Run mencoder
+    QString mencoderCommand = "cd " + snapshotsDir + " && " + mencoderexe + " " + movieFileName + " mf://" + pngFiles ;
+      QMessageBox::warning( NULL, tr( "Avogadro" ), mencoderCommand);
+      system(mencoderCommand.toStdString().c_str());
+    
+
+  }
+    
   void LinMorphExtension::savePovSnapshots(QString prefix)
   {
     // use the current glWidge for things like camera
