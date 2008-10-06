@@ -148,7 +148,7 @@ namespace Avogadro
     // if the molecule is empty, we want to look at its center
     // (which is probably at the origin, but who knows) from some distance
     // (here 10.0).
-    if( d->parent->molecule()->NumAtoms() == 0 )
+    if( d->parent->molecule()->numAtoms() == 0 )
     {
       d->modelview.translate( d->parent->center() - Vector3d( 0, 0, 10 ) );
       return;

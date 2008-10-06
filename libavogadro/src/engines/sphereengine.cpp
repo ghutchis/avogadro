@@ -31,14 +31,13 @@
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
 
-#include <openbabel/obiter.h>
 #include <Eigen/Regression>
 
 #include <QMessageBox>
 #include <QDebug>
 
-using namespace std;
-using namespace OpenBabel;
+#include <openbabel/mol.h>
+
 using namespace Eigen;
 
 namespace Avogadro {
@@ -179,7 +178,7 @@ namespace Avogadro {
 
   inline double SphereEngine::radius(const Atom *a) const
   {
-    return etab.GetVdwRad(a->GetAtomicNum());
+    return OpenBabel::etab.GetVdwRad(a->atomicNumber());
   }
 
   double SphereEngine::radius(const PainterDevice *pd, const Primitive *p) const

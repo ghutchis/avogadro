@@ -30,6 +30,7 @@
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
 
+#include <openbabel/mol.h>
 #include <openbabel/obiter.h>
 
 #include <QMessageBox>
@@ -66,14 +67,15 @@ namespace Avogadro {
 
   bool HBondEngine::renderOpaque(PainterDevice *pd)
   {
-    Molecule *mol = const_cast<Molecule *>(pd->molecule());
+    Molecule *molecule = const_cast<Molecule *>(pd->molecule());
+    OBMol mol = molecule->OBMol();
 
     pd->painter()->setColor(1.0, 1.0, 1.0);
     int stipple = 0xF0F0; // pattern for lines
 
     FOR_PAIRS_OF_MOL (p, mol) {
-      OBAtom *a = mol->GetAtom((*p)[0]);
-      OBAtom *b = mol->GetAtom((*p)[1]);
+      OBAtom *a = mol.GetAtom((*p)[0]);
+      OBAtom *b = mol.GetAtom((*p)[1]);
       
       if (a->GetDistance(b) > m_radius)
         continue;
@@ -88,10 +90,10 @@ namespace Avogadro {
         if (angle < m_angle)
           continue;
 
-        const Atom *atom1 = static_cast<const Atom *>( mol->GetAtom((*p)[0]) );
-        const Atom *atom2 = static_cast<const Atom *>( mol->GetAtom((*p)[1]) );
-        const Vector3d & v1 = atom1->pos();
-        const Vector3d & v2 = atom2->pos();
+        OBAtom *atom1 = mol.GetAtom((*p)[0]);
+        OBAtom *atom2 = mol.GetAtom((*p)[1]);
+        Vector3d v1(atom1->GetX(), atom1->GetY(), atom1->GetZ());
+        Vector3d v2(atom2->GetX(), atom2->GetY(), atom2->GetZ());
         pd->painter()->drawMultiLine(v1, v2, m_width, 1, stipple);
       } else if (b->IsHbondDonorH() && a->IsHbondAcceptor()) {
         double angle = 180.0; // default, if no neighbours on H
@@ -100,10 +102,10 @@ namespace Avogadro {
         if (angle < m_angle)
           continue;
 
-        const Atom *atom1 = static_cast<const Atom *>( mol->GetAtom((*p)[0]) );
-        const Atom *atom2 = static_cast<const Atom *>( mol->GetAtom((*p)[1]) );
-        const Vector3d & v1 = atom1->pos();
-        const Vector3d & v2 = atom2->pos();
+        OBAtom *atom1 = mol.GetAtom((*p)[0]);
+        OBAtom *atom2 = mol.GetAtom((*p)[1]);
+        Vector3d v1(atom1->GetX(), atom1->GetY(), atom1->GetZ());
+        Vector3d v2(atom2->GetX(), atom2->GetY(), atom2->GetZ());
         pd->painter()->drawMultiLine(v1, v2, m_width, 1, stipple);
       }
     }

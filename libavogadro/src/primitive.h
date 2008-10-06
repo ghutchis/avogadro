@@ -27,15 +27,25 @@
 
 #include <avogadro/global.h>
 
-#include <openbabel/mol.h>
-
 #include <QAbstractItemModel>
 
 #include <Eigen/Core>
 
+// Forward declarations
 class QReadWriteLock;
 
+namespace OpenBabel {
+  class OBAtom;
+  class OBBond;
+  class OBMol;
+}
+
 namespace Avogadro {
+
+  // Declare new classes
+  class Atom;
+  class Bond;
+  class Molecule;
 
   /**
    * @class Primitive primitive.h <avogadro/primitive.h>
@@ -158,7 +168,7 @@ namespace Avogadro {
    * Primitive superclass.
    */
   class AtomPrivate;
-  class A_EXPORT Atom : public Primitive, public OpenBabel::OBAtom
+  class A_EXPORT Atom : public Primitive
   {
     Q_OBJECT
 
@@ -182,7 +192,7 @@ namespace Avogadro {
         */
       inline const Eigen::Vector3d &pos () const
       {
-        return *reinterpret_cast<const Eigen::Vector3d*>(&GetVector());
+        return m_pos;
       }
 
       /** Sets the position of the atom, from a Eigen::Vector3d. This is similar to
@@ -195,11 +205,51 @@ namespace Avogadro {
         */
       inline void setPos(const Eigen::Vector3d &vec)
       {
-        SetVector( *reinterpret_cast<const OpenBabel::vector3*>(&vec) );
+        m_pos = vec;
       }
+
+      /// FIXME: I should return a real ID!
+      inline unsigned int index() const  // Replaces OpenBabel::OBAtom::GetIdx
+      {
+        return m_index;
+      }
+      inline void setIndex(unsigned int index)
+      {
+        m_index = index;
+      }
+      /// FIXME These are new functions that need fleshing out to work properly
+      inline int atomicNumber() const // Replaces GetAtomicNum
+      { return m_atomicNum; }
+
+      inline void setAtomicNumber(int num)
+      { m_atomicNum = num; }
+
+      void addBond(Bond* bond);
+      void deleteBond(Bond* bond);
+      QList<unsigned long int> bonds() { return m_bonds; }
+
+      QList<unsigned long int> neighbors() { return m_neighbors; }
+
+      double valence() { return 0.0; }
+
+      bool isHydrogen() const { return m_atomicNum == 1; }
+
+      /// FIXME New function that needs implenenting
+      inline double partialCharge() const
+      { return 0.0; }
+
+      /// Our OpenBabel conversion functions
+      OpenBabel::OBAtom OBAtom();
+      bool setOBAtom(OpenBabel::OBAtom *obatom);
+
+      Atom& operator=(const Atom& other);
 
     private:
       /* shared d_ptr with Primitive */
+      unsigned int m_index;
+      Eigen::Vector3d m_pos;
+      int m_atomicNum;
+      QList<unsigned long int> m_bonds, m_neighbors;
       Q_DECLARE_PRIVATE(Atom)
   };
 
@@ -214,7 +264,7 @@ namespace Avogadro {
    * Primitive superclass.
    */
   class BondPrivate;
-  class A_EXPORT Bond : public Primitive, public OpenBabel::OBBond
+  class A_EXPORT Bond : public Primitive
   {
     Q_OBJECT
 
@@ -225,8 +275,33 @@ namespace Avogadro {
        * @param parent the object parent.
        */
       Bond(QObject *parent=0);
-      
+
+      inline unsigned int index() const // replaces GetIdx
+      {
+        return m_index;
+      }
+      inline void setIndex(unsigned int index)
+      {
+        m_index = index;
+      }
+      /// FIXME: More functions that need fixing up!
+      inline unsigned long int beginAtomId() const { return m_beginAtomId; }
+      void setBegin(Atom* atom) { m_beginAtomId = atom->id(); }
+      inline unsigned long int endAtomId() const { return m_endAtomId; }
+      void setEnd(Atom* atom) { m_endAtomId = atom->id(); }
+      /// The order of the bond - 1 = single, 2 = double etc
+      inline int order() const { return m_order; }
+      inline void setOrder(int order) { m_order = order; }
+      inline double length() const { return 0.0; }
+
+      bool setOBBond(OpenBabel::OBBond *obbond);
+
+      Bond& operator=(const Bond& other);
+
     private:
+      unsigned int m_index;
+      unsigned long int m_beginAtomId, m_endAtomId;
+      int m_order;
       /* shared d_ptr with Primitive */
       Q_DECLARE_PRIVATE(Bond)
   };
@@ -241,7 +316,7 @@ namespace Avogadro {
    * the OpenBabel::OBResidue class through slots/signals provided by the
    * Primitive superclass.
    */
-  class A_EXPORT Residue : public Primitive, public OpenBabel::OBResidue
+  class A_EXPORT Residue : public Primitive
   {
     Q_OBJECT
 
@@ -251,7 +326,14 @@ namespace Avogadro {
        *
        * @param parent the object parent.
        */
-      Residue(QObject *parent=0): Primitive(ResidueType, parent), OpenBabel::OBResidue() { }
+      Residue(QObject *parent=0): Primitive(ResidueType, parent) { }
+
+      /// FIXME More functions that need to be fleshed out
+      QString name() // Replaces GetName
+      { return "FIXME"; }
+
+      QString numString() // Replaces GetName
+      { return "FIXME"; }
   };
 
   /**
@@ -266,7 +348,7 @@ namespace Avogadro {
    * all required data.
    */
   class MoleculePrivate;
-  class A_EXPORT Molecule : public Primitive, public OpenBabel::OBMol
+  class A_EXPORT Molecule : public Primitive
   {
     Q_OBJECT
 
@@ -287,7 +369,8 @@ namespace Avogadro {
        *
        * @return pointer to a newly allocated Atom object
        */
-      Atom *CreateAtom(void);
+//      Atom *CreateAtom();
+//      void createAtom(Atom *) { ; }
 
       /**
        * Virtual function inherited from OpenBabel::OBMol.
@@ -295,7 +378,7 @@ namespace Avogadro {
        *
        * @return pointer to a newly allocated Bond object
        */
-      Bond * CreateBond(void);
+//      Bond *CreateBond();
 
       /**
        * Virtual function inherited from OpenBabel::OBMol.
@@ -303,7 +386,7 @@ namespace Avogadro {
        *
        * @return pointer to a newly allocated Residue object
        */
-      Residue * CreateResidue(void);
+//      Residue *CreateResidue();
 
       /**
        * Virtual function inherited from OpenBabel::OBMol.
@@ -311,7 +394,7 @@ namespace Avogadro {
        *
        * @param atom the atom to delete
        */
-      void DestroyAtom(OpenBabel::OBAtom* atom);
+//      void DestroyAtom(Atom* atom);
 
       /**
        * Virtual function inherited from OpenBabel::OBMol.
@@ -319,7 +402,7 @@ namespace Avogadro {
        *
        * @param bond the bond to delete
        */
-      void DestroyBond(OpenBabel::OBBond* bond);
+//      void DestroyBond(Bond* bond);
 
       /**
        * Virtual function inherited from OpenBabel::OBMol.
@@ -327,7 +410,7 @@ namespace Avogadro {
        *
        * @param residue the residue to delete
        */
-      void DestroyResidue(OpenBabel::OBResidue* residue);
+//      void DestroyResidue(Residue* residue);
 
       /**
        * These are new functions to replace OBMol::NewAtom
@@ -335,6 +418,8 @@ namespace Avogadro {
        */
       Atom *newAtom();
       Atom *newAtom(unsigned long id);
+      void deleteAtom(Atom *atom);
+      void deleteAtom(unsigned long int id);
 
       /**
        * These are new functions to replace OBMol::NewBond
@@ -342,15 +427,50 @@ namespace Avogadro {
        */
       Bond *newBond();
       Bond *newBond(unsigned long id);
+      void deleteBond(Bond *bond);
+      void deleteBond(unsigned long int id);
 
       Atom *getAtomById(unsigned long id) const;
 
       Bond *getBondById(unsigned long id) const;
 
+      void addHydrogens(Atom *atom = 0);
+      void deleteHydrogens(Atom *atom);
+      void deleteHydrogens();
+
+
+      /// FIXME These are new functions that need fleshing out to work properly
+      unsigned int numAtoms() const;
+      unsigned int numBonds() const;
+      unsigned int numResidues() const;
+
+      Atom* atom(int index); // Replaces GetAtom
+      Bond* bond(int index); // Replaces GetBond
+
+      Bond* bond(unsigned long int id1, unsigned long int id2);
+      Bond* bond(const Atom*, const Atom*);
+
+      QList<Atom *> atoms();
+      QList<Bond *> bonds();
+
+      /** FIXME Implement me!
+       * Delete all elements of the molecule
+       */
+       void clear();
+
+      /**
+       * Get access to an OpenBabel atom, this is a copy of the internal data
+       * structure in OpenBabel form, you must call setOBAtom in order to save
+       * any changes you make to this object.
+       */
+      OpenBabel::OBMol OBMol();
+      bool setOBMol(OpenBabel::OBMol *obmol);
+
       const Eigen::Vector3d & center() const;
       const Eigen::Vector3d & normalVector() const;
       const double & radius() const;
       const Atom *farthestAtom() const;
+      void translate(const Eigen::Vector3d&) { ; }
 
       Molecule& operator=(const Molecule& other);
 
@@ -399,4 +519,4 @@ namespace Avogadro {
 
 Q_DECLARE_METATYPE(Avogadro::Primitive*)
 
-#endif // __PRIMITIVES_H
+#endif // PRIMITIVE_H

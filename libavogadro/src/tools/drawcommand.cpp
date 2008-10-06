@@ -26,6 +26,7 @@
 
 #include "drawcommand.h"
 #include <avogadro/primitive.h>
+#include <openbabel/mol.h>
 #include <openbabel/obiter.h>
 
 #include <QDebug>
@@ -37,7 +38,7 @@ namespace Avogadro {
   /// Utility function -- unset OpenBabel perception
   void UnsetFlags(Molecule *mol)
   {
-    mol->UnsetFlag(OB_AROMATIC_MOL);
+/*    mol->UnsetFlag(OB_AROMATIC_MOL);
     mol->UnsetFlag(OB_SSSR_MOL);
     mol->UnsetFlag(OB_RINGFLAGS_MOL);
     mol->UnsetFlag(OB_ATOMTYPES_MOL);
@@ -48,7 +49,7 @@ namespace Avogadro {
     mol->UnsetFlag(OB_KEKULE_MOL);
     mol->UnsetFlag(OB_CLOSURE_MOL);
     mol->UnsetFlag(OB_H_ADDED_MOL);
-    mol->UnsetFlag(OB_AROM_CORRECTED_MOL);
+    mol->UnsetFlag(OB_AROM_CORRECTED_MOL); */
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -85,7 +86,7 @@ namespace Avogadro {
     setText(QObject::tr("Add Atom"));
     d->molecule = molecule;
     d->pos = atom->pos();
-    d->element = atom->GetAtomicNum();
+    d->element = atom->atomicNumber();
     d->atom = atom;
     d->adjustValence = adjustValence;
     d->id = atom->id();
@@ -102,17 +103,12 @@ namespace Avogadro {
     Atom *atom = d->molecule->getAtomById(d->id);
     if(atom)
     {
-      d->molecule->BeginModify();
       if (d->adjustValence) {
       qDebug() << "Adjusting Atom valence";
-        if (!atom->IsHydrogen())
-        {
-          d->molecule->DeleteHydrogens(atom);
-        }
+        if (!atom->isHydrogen())
+          d->molecule->deleteHydrogens(atom);
       }
-      d->molecule->DeleteAtom(atom);
-      d->molecule->EndModify();
-      //      d->molecule->update();
+      d->molecule->deleteAtom(atom);
     }
   }
 
@@ -120,10 +116,10 @@ namespace Avogadro {
   {
     if(d->atom) { // initial creation
       if (d->adjustValence==1) {
-      qDebug() << "Adjusting Atom valence";
-        if (!d->atom->IsHydrogen()) {
-          d->molecule->DeleteHydrogens(d->atom);
-          d->molecule->AddHydrogens(d->atom);
+        qDebug() << "Adjusting Atom valence";
+        if (!d->atom->isHydrogen()) {
+          d->molecule->deleteHydrogens(d->atom);
+          d->molecule->addHydrogens(d->atom);
         }
       }
       d->atom = 0;
@@ -131,7 +127,6 @@ namespace Avogadro {
     }
 
     Atom *atom = 0;
-    d->molecule->BeginModify();
     if(d->prevId)
     {
       atom = d->molecule->newAtom(d->id);
@@ -143,12 +138,11 @@ namespace Avogadro {
       d->prevId = true;
     }
     atom->setPos(d->pos);
-    atom->SetAtomicNum(d->element);
-    d->molecule->EndModify();
+    atom->setAtomicNumber(d->element);
     if (d->adjustValence==1) {
       qDebug() << "Adjusting Atom valence";
-      if (!atom->IsHydrogen()) {
-        d->molecule->AddHydrogens(atom);
+      if (!atom->isHydrogen()) {
+        d->molecule->addHydrogens(atom);
       }
     }
     atom->update();
@@ -172,8 +166,9 @@ namespace Avogadro {
   {
     setText(QObject::tr("Delete Atom"));
     d->molecule = molecule;
-    d->moleculeCopy = (*(molecule));
-    d->id = static_cast<Atom *>(molecule->GetAtom(index))->id();
+    d->moleculeCopy = *molecule;
+    d->id = molecule->atom(index)->id();
+    qDebug() << "Deleting atom" << d->id;
     d->adjustValence = adjustValence;
   }
 
@@ -197,20 +192,21 @@ namespace Avogadro {
 
       if (d->adjustValence) {
         // Delete any hydrogens on this atom
-        d->molecule->DeleteHydrogens(atom);
+        d->molecule->deleteHydrogens(atom);
         // Now that we've deleted any attached hydrogens,
         // Adjust the valence on any bonded atom
-        FOR_NBORS_OF_ATOM(n, atom) {
-          neighbors.append(&*n);
-          d->molecule->DeleteHydrogens(&*n);
-        }
+        /// FIXME Find a way of finding neighbours here...
+//        FOR_NBORS_OF_ATOM(n, atom) {
+//          neighbors.append(&*n);
+//          d->molecule->DeleteHydrogens(&*n);
+//        }
       }
-      d->molecule->DeleteAtom(atom);
+      d->molecule->deleteAtom(atom);
 
       if (d->adjustValence) {
         // Finally, add back hydrogens to neighbors
-        foreach (OBAtom *n, neighbors)
-          d->molecule->AddHydrogens(n);
+//        foreach (OBAtom *n, neighbors)
+//          d->molecule->AddHydrogens(n);
       }
       d->molecule->update();
     }
@@ -249,9 +245,9 @@ namespace Avogadro {
   {
     setText(QObject::tr("Add Bond"));
     d->molecule = molecule;
-    d->beginAtomId = static_cast<Atom*>(bond->GetBeginAtom())->id();
-    d->endAtomId = static_cast<Atom*>(bond->GetEndAtom())->id();
-    d->order = bond->GetBondOrder();
+    d->beginAtomId = bond->beginAtomId();
+    d->endAtomId = bond->endAtomId();
+    d->order = bond->order();
     d->bond = bond;
     d->prevId = true;
     d->id = bond->id();
@@ -268,27 +264,23 @@ namespace Avogadro {
     Bond *bond = d->molecule->getBondById(d->id);
     if(bond)
     {
-      Atom *beginAtom = static_cast<Atom*>(bond->GetBeginAtom());
-      Atom *endAtom = static_cast<Atom*>(bond->GetEndAtom());
+      Atom* beginAtom = d->molecule->getAtomById(bond->beginAtomId());
+      Atom* endAtom = d->molecule->getAtomById(bond->endAtomId());
 
-      d->molecule->BeginModify();
-      d->molecule->DeleteBond(bond);
-      d->molecule->EndModify();
+      d->molecule->deleteBond(bond);
       if (d->adjustValence) {
-        if (!beginAtom->IsHydrogen()) {
-          d->molecule->DeleteHydrogens(beginAtom);
+        if (!beginAtom->isHydrogen()) {
+          d->molecule->deleteHydrogens(beginAtom);
         }
-        if (!endAtom->IsHydrogen()) {
-          d->molecule->DeleteHydrogens(endAtom);
+        if (!endAtom->isHydrogen()) {
+          d->molecule->deleteHydrogens(endAtom);
         }
 
-        UnsetFlags(d->molecule);
-
-        if (!beginAtom->IsHydrogen()) {
-          d->molecule->AddHydrogens(beginAtom);
+        if (!beginAtom->isHydrogen()) {
+          d->molecule->addHydrogens(beginAtom);
         }
-        if (!endAtom->IsHydrogen()) {
-          d->molecule->AddHydrogens(endAtom);
+        if (!endAtom->isHydrogen()) {
+          d->molecule->addHydrogens(endAtom);
         }
       }
       d->molecule->update();
@@ -298,25 +290,22 @@ namespace Avogadro {
 
   void AddBondDrawCommand::redo()
   {
-
     if(d->bond) { // already created the bond
-      Atom *beginAtom = static_cast<Atom*>(d->bond->GetBeginAtom());
-      Atom *endAtom = static_cast<Atom*>(d->bond->GetEndAtom());
+      Atom* beginAtom = d->molecule->getAtomById(d->bond->beginAtomId());
+      Atom* endAtom = d->molecule->getAtomById(d->bond->endAtomId());
       if (d->adjustValence) {
-        if (!beginAtom->IsHydrogen()) {
-          d->molecule->DeleteHydrogens(beginAtom);
+        if (!beginAtom->isHydrogen()) {
+          d->molecule->deleteHydrogens(beginAtom);
         }
-        if (!endAtom->IsHydrogen()) {
-          d->molecule->DeleteHydrogens(endAtom);
+        if (!endAtom->isHydrogen()) {
+          d->molecule->deleteHydrogens(endAtom);
         }
 
-        UnsetFlags(d->molecule);
-
-        if (!beginAtom->IsHydrogen()) {
-          d->molecule->AddHydrogens(beginAtom);
+        if (!beginAtom->isHydrogen()) {
+          d->molecule->addHydrogens(beginAtom);
         }
-        if (!endAtom->IsHydrogen()) {
-          d->molecule->AddHydrogens(endAtom);
+        if (!endAtom->isHydrogen()) {
+          d->molecule->addHydrogens(endAtom);
         }
       }
       d->bond = 0;
@@ -331,7 +320,6 @@ namespace Avogadro {
       return;
     }
 
-    d->molecule->BeginModify();
     Bond *bond;
     if(d->prevId)
     {
@@ -343,31 +331,30 @@ namespace Avogadro {
       d->id = bond->id();
       d->prevId = true;
     }
-    bond->SetBondOrder(d->order);
-    bond->SetBegin(beginAtom);
-    bond->SetEnd(endAtom);
-    beginAtom->AddBond(bond);
-    endAtom->AddBond(bond);
-    d->molecule->EndModify();
+    bond->setOrder(d->order);
+    bond->setBegin(beginAtom);
+    bond->setEnd(endAtom);
+    beginAtom->addBond(bond);
+    endAtom->addBond(bond);
     if (d->adjustValence) {
-      if (!beginAtom->IsHydrogen())
+      if (!beginAtom->isHydrogen())
       {
-        d->molecule->DeleteHydrogens(beginAtom);
+        d->molecule->deleteHydrogens(beginAtom);
       }
-      if (!endAtom->IsHydrogen())
+      if (!endAtom->isHydrogen())
       {
-        d->molecule->DeleteHydrogens(endAtom);
+        d->molecule->deleteHydrogens(endAtom);
       }
 
       UnsetFlags(d->molecule);
 
-      if (!beginAtom->IsHydrogen())
+      if (!beginAtom->isHydrogen())
       {
-        d->molecule->AddHydrogens(endAtom);
+        d->molecule->addHydrogens(endAtom);
       }
-      if (!endAtom->IsHydrogen())
+      if (!endAtom->isHydrogen())
       {
-        d->molecule->AddHydrogens(beginAtom);
+        d->molecule->addHydrogens(beginAtom);
       }
     }
     d->molecule->update();
@@ -392,7 +379,7 @@ namespace Avogadro {
     setText(QObject::tr("Delete Bond"));
     d->molecule = molecule;
     d->moleculeCopy = (*(molecule));
-    d->id = static_cast<Bond *>(molecule->GetBond(index))->id();
+    d->id = molecule->bond(index)->id();
     d->adjustValence = adjustValence;
   }
 
@@ -412,18 +399,17 @@ namespace Avogadro {
     Bond *bond = d->molecule->getBondById(d->id);
     if(bond)
     {
-      d->molecule->DeleteBond(bond);
+      d->molecule->deleteBond(bond);
       if (d->adjustValence) {
-        OBAtom *a1, *a2;
-        a1 = bond->GetBeginAtom();
-        a2 = bond->GetEndAtom();
-        d->molecule->DeleteHydrogens(a1);
-        d->molecule->DeleteHydrogens(a2);
+        Atom *a1, *a2;
+        a1 = d->molecule->getAtomById(bond->beginAtomId());
+        a2 = d->molecule->getAtomById(bond->endAtomId());
 
-        UnsetFlags(d->molecule);
+        d->molecule->deleteHydrogens(a1);
+        d->molecule->deleteHydrogens(a2);
 
-        d->molecule->AddHydrogens(a1);
-        d->molecule->AddHydrogens(a2);
+        d->molecule->addHydrogens(a1);
+        d->molecule->addHydrogens(a2);
       }
       d->molecule->update();
     }
@@ -447,7 +433,7 @@ namespace Avogadro {
   {
     setText(QObject::tr("Change Element"));
     d->molecule = molecule;
-    d->newElement = atom->GetAtomicNum();
+    d->newElement = atom->atomicNumber();
     d->oldElement = oldElement;
     d->id = atom->id();
     d->adjustValence = adjustValence;
@@ -465,14 +451,11 @@ namespace Avogadro {
     if(atom)
     {
       // Make sure we call BeginModify / EndModify (e.g., PR#1720879)
-      d->molecule->BeginModify();
-      atom->SetAtomicNum(d->oldElement);
-      d->molecule->EndModify();
+      atom->setAtomicNumber(d->oldElement);
       d->molecule->update();
       if (d->adjustValence) {
-        UnsetFlags(d->molecule);
-        d->molecule->DeleteHydrogens(atom);
-        d->molecule->AddHydrogens(atom);
+        d->molecule->deleteHydrogens(atom);
+        d->molecule->addHydrogens(atom);
       }
     }
   }
@@ -484,13 +467,10 @@ namespace Avogadro {
     if(atom)
     {
       // Make sure we call BeginModify / EndModify (e.g., PR#1720879)
-      d->molecule->BeginModify();
-      atom->SetAtomicNum(d->newElement);
-      d->molecule->EndModify();
+      atom->setAtomicNumber(d->newElement);
       if (d->adjustValence) {
-        UnsetFlags(d->molecule);
-        d->molecule->DeleteHydrogens(atom);
-        d->molecule->AddHydrogens(atom);
+        d->molecule->deleteHydrogens(atom);
+        d->molecule->addHydrogens(atom);
       }
       d->molecule->update();
     }
@@ -515,7 +495,7 @@ namespace Avogadro {
     setText(QObject::tr("Change Bond Order"));
     d->molecule = molecule;
     d->id = bond->id();
-    d->newBondOrder = bond->GetBondOrder();
+    d->newBondOrder = bond->order();
     d->oldBondOrder = oldBondOrder;
     d->adjustValence = adjustValence;
   }
@@ -531,19 +511,17 @@ namespace Avogadro {
     if(bond)
     {
       // Make sure we call BeginModify / EndModify (e.g., PR#1720879)
-      d->molecule->BeginModify();
-      bond->SetBondOrder(d->oldBondOrder);
-      d->molecule->EndModify();
+      bond->setOrder(d->oldBondOrder);
       if (d->adjustValence) {
-        OBAtom *a1, *a2;
-        a1 = bond->GetBeginAtom();
-        a2 = bond->GetEndAtom();
-        d->molecule->DeleteHydrogens(a1);
-        d->molecule->DeleteHydrogens(a2);
+        Atom *a1, *a2;
+        a1 = d->molecule->getAtomById(bond->beginAtomId());
+        a2 = d->molecule->getAtomById(bond->endAtomId());
 
-        UnsetFlags(d->molecule);
-        d->molecule->AddHydrogens(a1);
-        d->molecule->AddHydrogens(a2);
+        d->molecule->deleteHydrogens(a1);
+        d->molecule->deleteHydrogens(a2);
+
+        d->molecule->addHydrogens(a1);
+        d->molecule->addHydrogens(a2);
       }
       d->molecule->update();
     }
@@ -555,20 +533,17 @@ namespace Avogadro {
     if(bond)
     {
       // Make sure we call BeginModify / EndModify (e.g., PR#1720879)
-      d->molecule->BeginModify();
-      bond->SetBondOrder(d->newBondOrder);
-      d->molecule->EndModify();
+      bond->setOrder(d->newBondOrder);
       if (d->adjustValence) {
-
-        OBAtom *a1, *a2;
-        a1 = bond->GetBeginAtom();
-        a2 = bond->GetEndAtom();
-        d->molecule->DeleteHydrogens(a1);
-        d->molecule->DeleteHydrogens(a2);
+        Atom *a1, *a2;
+        a1 = d->molecule->getAtomById(bond->beginAtomId());
+        a2 = d->molecule->getAtomById(bond->endAtomId());
+        d->molecule->deleteHydrogens(a1);
+        d->molecule->deleteHydrogens(a2);
 
         UnsetFlags(d->molecule);
-        d->molecule->AddHydrogens(a1);
-        d->molecule->AddHydrogens(a2);
+        d->molecule->addHydrogens(a1);
+        d->molecule->addHydrogens(a2);
       }
       d->molecule->update();
     }

@@ -69,7 +69,7 @@ namespace Avogadro {
     // Remember to account for the situation where no molecule is loaded or it is empty
     if(!widget->molecule())
       m_referencePoint = Vector3d(0., 0., 0.);
-    else if(!widget->molecule()->NumAtoms())
+    else if(!widget->molecule()->numAtoms())
       m_referencePoint = Vector3d(0., 0., 0.);
     else if(m_clickedAtom)
       m_referencePoint = m_clickedAtom->pos();
@@ -78,9 +78,8 @@ namespace Avogadro {
       // part of the molecule.
       Vector3d atomsBarycenter(0., 0., 0.);
       double sumOfWeights = 0.;
-      std::vector<OpenBabel::OBNodeBase*>::iterator i;
-      for ( Atom *atom = static_cast<Atom*>(widget->molecule()->BeginAtom(i));
-            atom; atom = static_cast<Atom*>(widget->molecule()->NextAtom(i))) {
+      QList<Atom*> atoms = widget->molecule()->atoms();
+      foreach (Atom *atom, atoms) {
         Vector3d transformedAtomPos = widget->camera()->modelview() * atom->pos();
         double atomDistance = transformedAtomPos.norm();
         double dot = transformedAtomPos.z() / atomDistance;

@@ -297,13 +297,9 @@ namespace Avogadro
   {
     d->type = primitive->type();
     if (d->type == Primitive::AtomType)
-      {
-        d->id = static_cast<const Atom *>(primitive)->GetIdx();
-      }
+      d->id = static_cast<const Atom *>(primitive)->index();
     else if (d->type == Primitive::BondType)
-      {
-        d->id = static_cast<const Bond *>(primitive)->GetIdx();
-      }
+      d->id = static_cast<const Bond *>(primitive)->index();
   }
 
   void GLPainter::setName ( Primitive::Type type, int id )
@@ -1056,13 +1052,13 @@ namespace Avogadro
         glPushName(d->id);
       }
   }
-  
+
   void GLPainter::resetName()
   {
     d->type = Primitive::OtherType;
     d->id = -1;
   }
-  
+
   void GLPainter::popName()
   {
     // Pop the type and id if they are set, then reset them

@@ -30,12 +30,10 @@
 #include <avogadro/glwidget.h>
 #include <avogadro/camera.h>
 
-#include <openbabel/obiter.h>
+#include <openbabel/mol.h>
 
 #include <QMessageBox>
 
-using namespace std;
-using namespace OpenBabel;
 using namespace Eigen;
 
 // Conversion from integers to double
@@ -130,8 +128,8 @@ namespace Avogadro {
     Color *map = colorMap(); // possible custom color map
     if (!map) map = pd->colorMap(); // fall back to global color map
 
-    const Atom* atom1 = static_cast<const Atom *>(b->GetBeginAtom());
-    const Atom* atom2 = static_cast<const Atom *>(b->GetEndAtom());
+    Atom* atom1 = pd->molecule()->getAtomById(b->beginAtomId());
+    Atom* atom2 = pd->molecule()->getAtomById(b->endAtomId());
     Vector3d v1 (atom1->pos());
     Vector3d v2 (atom2->pos());
     Vector3d v3 (( v1 + v2 ) / 2);
@@ -175,7 +173,7 @@ namespace Avogadro {
     // Bond radius
     else if (p->type() == Primitive::BondType)
     {
-      const Atom* a = static_cast<const Atom *>((static_cast<const Bond *>(p))->GetBeginAtom());
+      const Atom* a = pd->molecule()->getAtomById(static_cast<const Bond *>(p)->beginAtomId());
       if (pd)
       {
         if (pd->isSelected(p))

@@ -47,7 +47,7 @@ namespace Avogadro {
   {
     QApplication::clipboard()->setMimeData(m_copiedData, QClipboard::Clipboard);
     if (m_selectedList.size() == 0) {
-      m_molecule->Clear();
+      m_molecule->clear();
     }
     else {
       // Make sure any selection is an atom
@@ -56,7 +56,7 @@ namespace Avogadro {
         Atom *atom = m_molecule->getAtomById(atomid);
         if(atom)
         {
-          m_molecule->DeleteAtom(atom);
+          m_molecule->deleteAtom(atom);
         }
       }
     }
@@ -84,13 +84,14 @@ namespace Avogadro {
   {
     m_widget->clearSelected();
     // save the current number of atoms -- we'll select all new ones
-    unsigned int currentNumAtoms = m_molecule->NumAtoms();
+    unsigned int currentNumAtoms = m_molecule->numAtoms();
     *m_molecule += m_pastedMolecule;
 
     QList<Primitive*> newSelection;
-    FOR_ATOMS_OF_MOL(a, *m_molecule) {
-      if (a->GetIdx() > currentNumAtoms)
-        newSelection.append(static_cast<Atom *>(&*a));
+    QList<Atom*> atoms = m_widget->molecule()->atoms();
+    foreach (Atom *atom, atoms) {
+      if (atom->index() > currentNumAtoms)
+        newSelection.append(const_cast<Atom *>(atom));
     }
     m_widget->setSelected(newSelection, true);
     m_molecule->update();
@@ -119,7 +120,7 @@ namespace Avogadro {
   void ClearCommand::redo()
   {
     if (m_selectedList.size() == 0) {
-      m_molecule->Clear();
+      m_molecule->clear();
     }
     else {
       // Make sure any selection is an atom
@@ -128,7 +129,7 @@ namespace Avogadro {
         Atom *atom = m_molecule->getAtomById(atomid);
         if(atom)
         {
-          m_molecule->DeleteAtom(atom);
+          m_molecule->deleteAtom(atom);
         }
       }
     }

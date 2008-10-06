@@ -102,19 +102,20 @@ namespace Avogadro {
   //  a = 20 * energy
   //  b = 20 * energy
   //
-  Color SurfaceEngine::espColor(Molecule *mol, Vector3f &pos)
+  Color SurfaceEngine::espColor(Molecule *, Vector3f &pos)
   {
     GLfloat red, green, blue;
     double energy = 0.0;
-    vector3 p, dist;
+    Vector3f dist;
 
-    p.SetX(pos.x());
-    p.SetY(pos.y());
-    p.SetZ(pos.z());
+    QList<Primitive *> list;
+    // Get a list of atoms and calculate the dipole moment
+    list = primitives().subList(Primitive::AtomType);
 
-    FOR_ATOMS_OF_MOL (atom, mol) {
-      dist = atom->GetVector() - p;
-      energy += atom->GetPartialCharge() / (dist.length()*dist.length());
+    foreach(const Primitive *p, list) {
+      const Atom *a = static_cast<const Atom *>(p);
+      dist = a->pos() - pos;
+      energy += a->partialCharge() / dist.norm2();
     }
 
     // Chemistry convention: red = negative, blue = positive
@@ -150,7 +151,7 @@ namespace Avogadro {
     if (m_vdwThread->isRunning())
       return false;
     Molecule *mol = const_cast<Molecule *>(pd->molecule());
-    if (!mol->NumAtoms())
+    if (!mol->numAtoms())
       return false; // no atoms -> no surface
 
     if (!m_surfaceValid)
@@ -272,7 +273,7 @@ namespace Avogadro {
     if (m_vdwThread->isRunning())
       return false;
     Molecule *mol = const_cast<Molecule *>(pd->molecule());
-    if (!mol->NumAtoms())
+    if (!mol->numAtoms())
       return false; // no atoms -> no surface
 
     if (!m_surfaceValid)
@@ -397,7 +398,7 @@ namespace Avogadro {
     if (m_vdwThread->isRunning())
       return false;
     Molecule *mol = const_cast<Molecule *>(pd->molecule());
-    if (!mol->NumAtoms())
+    if (!mol->numAtoms())
       return false; // no atoms -> no surface
 
     if (!m_surfaceValid)
@@ -475,7 +476,7 @@ namespace Avogadro {
 
   inline double SurfaceEngine::radius(const Atom *a) const
   {
-    return etab.GetVdwRad(a->GetAtomicNum());
+    return etab.GetVdwRad(a->atomicNumber());
   }
 
   double SurfaceEngine::radius(const PainterDevice *, const Primitive *p) const
@@ -696,17 +697,18 @@ namespace Avogadro {
     // method until we improve this function
     m_molecule->lock()->lockForRead();
     QList<Primitive*> pSurfaceAtoms = m_primitives.subList(Primitive::AtomType);
-    QList<vector3> surfaceAtomsPos;
+    QList<Vector3d> surfaceAtomsPos;
     QList<int> surfaceAtomsNum;
     foreach(Primitive* p, pSurfaceAtoms) {
       Atom* a = static_cast<Atom *>(p);
-      surfaceAtomsPos.push_back(a->GetVector());
-      surfaceAtomsNum.push_back(a->GetAtomicNum());
+      surfaceAtomsPos.push_back(a->pos());
+      surfaceAtomsNum.push_back(a->atomicNumber());
     }
     m_molecule->lock()->unlock();
 
     OBFloatGrid grid;
-    grid.Init(*m_molecule, m_stepSize, 2.5);
+    OBMol mol = m_molecule->OBMol();
+    grid.Init(mol, m_stepSize, 2.5);
     vector3 min;
     int xDim, yDim, zDim;
 
@@ -741,7 +743,9 @@ namespace Avogadro {
       numBoxes = 4;
     //cout << "numBoxes = " << numBoxes << endl;
     for (int ai=0; ai < surfaceAtomsPos.size(); ai++) {
-      surfaceAtomsPos[ai].Get(pos);
+      pos[0] = surfaceAtomsPos[ai][0];
+      pos[1] = surfaceAtomsPos[ai][1];
+      pos[2] = surfaceAtomsPos[ai][2];
       grid.CoordsToIndex(index, pos);
       // cout << "center(i,j,k) = " << index[0] << ", " << index[1] << ", " << index[2] << endl; 
 
