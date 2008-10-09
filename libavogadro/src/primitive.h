@@ -46,6 +46,7 @@ namespace Avogadro {
   class Atom;
   class Bond;
   class Molecule;
+  class Cube;
 
   /**
    * @class Primitive primitive.h <avogadro/primitive.h>
@@ -450,8 +451,9 @@ namespace Avogadro {
       Bond* bond(unsigned long int id1, unsigned long int id2);
       Bond* bond(const Atom*, const Atom*);
 
-      QList<Atom *> atoms();
-      QList<Bond *> bonds();
+      QList<Atom *> atoms() const;
+      QList<Bond *> bonds() const;
+      QList<Cube *> cubes() const;
 
       /** FIXME Implement me!
        * Delete all elements of the molecule

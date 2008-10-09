@@ -28,6 +28,7 @@
 
 #include <config.h>
 #include <avogadro/primitive.h>
+#include "../cube.h"
 
 #include <openbabel/math/vector3.h>
 #include <openbabel/griddata.h>

@@ -25,6 +25,7 @@
 #include <config.h>
 
 #include <avogadro/primitive.h>
+#include "cube.h"
 #include <Eigen/Regression>
 #include <Eigen/Geometry>
 
@@ -33,6 +34,9 @@
 #include <QDebug>
 
 #include <openbabel/mol.h>
+#include <openbabel/math/vector3.h>
+#include <openbabel/griddata.h>
+#include <openbabel/grid.h>
 
 namespace Avogadro {
 
@@ -196,10 +200,12 @@ namespace Avogadro {
       // std::vector used over QVector due to index issues, QVector uses ints
       std::vector<Atom *>           atoms;
       std::vector<Bond *>           bonds;
+      std::vector<Cube *>           cubes;
 
       // Used to store the index based list (not unique ids)
       QList<Atom *>                 atomList;
       QList<Bond *>                 bondList;
+      QList<Cube *>                 cubeList;
 
       // Our OpenBabel OBMol object
       OpenBabel::OBMol *            obmol;
@@ -540,17 +546,22 @@ namespace Avogadro {
       return 0;
   }
 
-  QList<Atom *> Molecule::atoms()
+  QList<Atom *> Molecule::atoms() const
   {
-    Q_D(Molecule);
+    Q_D(const Molecule);
     return d->atomList;
   }
 
-  QList<Bond *> Molecule::bonds()
+  QList<Bond *> Molecule::bonds() const
   {
-    // Make a QList containing all current atoms
-    Q_D(Molecule);
+    Q_D(const Molecule);
     return d->bondList;
+  }
+
+  QList<Cube *> Molecule::cubes() const
+  {
+    Q_D(const Molecule);
+    return d->cubeList;
   }
 
   OpenBabel::OBMol Molecule::OBMol()
@@ -563,12 +574,10 @@ namespace Avogadro {
       OpenBabel::OBAtom *a = obmol.NewAtom();
       OpenBabel::OBAtom obatom = atom->OBAtom();
       *a = obatom;
-//      qDebug() << "Atoms" << obmol.NumAtoms();
     }
     foreach (Bond *bond, d->bondList) {
       obmol.AddBond(getAtomById(bond->beginAtomId())->index() + 1,
                     getAtomById(bond->endAtomId())->index() + 1, bond->order());
-//      qDebug() << "Bonds" << obmol.NumBonds();
     }
     obmol.EndModify();
 
@@ -604,6 +613,24 @@ namespace Avogadro {
       // Set the bond to the atoms too, remember the 0 based and 1 based arrays
       atom(obbond->GetBeginAtom()->GetIdx()-1)->addBond(bond);
       atom(obbond->GetEndAtom()->GetIdx()-1)->addBond(bond);
+    }
+    // Now for the volumetric data
+    std::vector<OpenBabel::OBGenericData*> data = obmol->GetAllData(OpenBabel::OBGenericDataType::GridData);
+    for (unsigned int i = 0; i < data.size(); ++i) {
+      QString name = QString(data[i]->GetAttribute().c_str());
+      OpenBabel::OBGridData *grid = static_cast<OpenBabel::OBGridData *>(data[i]);
+      OpenBabel::vector3 obmin = grid->GetOriginVector();
+      Eigen::Vector3d min(obmin.x(), obmin.y(), obmin.z());
+      OpenBabel::vector3 obmax = grid->GetMaxVector();
+      Eigen::Vector3d max(obmax.x(), obmax.y(), obmax.z());
+      int x, y, z;
+      grid->GetNumberOfPoints(x, y, z);
+      Eigen::Vector3i points(x, y, z);
+      Cube *cube = new Cube;
+      cube->setLimits(min, max, points);
+      cube->setData(grid->GetValues());
+      cube->setName(name);
+      qDebug() << "Cube" << i << "added.";
     }
     return true;
   }
