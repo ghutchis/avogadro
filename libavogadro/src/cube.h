@@ -31,7 +31,7 @@
 
 namespace Avogadro {
 
-  class Cube : public Primitive
+  class A_EXPORT Cube : public Primitive
   {
   Q_OBJECT
 
@@ -42,22 +42,22 @@ namespace Avogadro {
    /**
     * @return The minimum point in the cube.
     */
-    Eigen::Vector3d min();
+    Eigen::Vector3d min() { return m_min; }
 
    /**
     * @return The maximum point in the cube.
     */
-    Eigen::Vector3d max();
+    Eigen::Vector3d max() { return m_max; }
 
    /**
     * @return The spacing of the grid.
     */
-    Eigen::Vector3d spacing();
+    Eigen::Vector3d spacing() { return m_spacing; }
 
    /**
     * @return The x, y and z dimensions of the cube.
     */
-    Eigen::Vector3i dimensions();
+    Eigen::Vector3i dimensions() { return m_points; }
 
     /**
      * Set the limits of the cube.
@@ -108,3 +108,4 @@ namespace Avogadro {
 } // End namespace Avogadro
 
  #endif
+ 

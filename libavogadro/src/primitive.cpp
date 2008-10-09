@@ -449,6 +449,24 @@ namespace Avogadro {
       return 0;
   }
 
+  Cube *Molecule::newCube()
+  {
+    Q_D(Molecule);
+
+    Cube *cube = new Cube;
+
+    d->cubes.push_back(cube);
+    cube->setId(d->cubes.size()-1);
+
+    d->cubeList.push_back(cube);
+//    cube->setIndex(d->cubeList.size()-1);
+
+    // now that the id is correct, emit the signal
+    connect(cube, SIGNAL(updated()), this, SLOT(updatePrimitive()));
+    emit primitiveAdded(cube);
+    return(cube);
+  }
+
   void Molecule::addHydrogens(Atom *atom)
   {
     // Construct an OBMol, call AddHydrogens and translate the changes
@@ -626,7 +644,7 @@ namespace Avogadro {
       int x, y, z;
       grid->GetNumberOfPoints(x, y, z);
       Eigen::Vector3i points(x, y, z);
-      Cube *cube = new Cube;
+      Cube *cube = newCube();
       cube->setLimits(min, max, points);
       cube->setData(grid->GetValues());
       cube->setName(name);

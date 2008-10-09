@@ -103,12 +103,12 @@ install(TARGETS stickengine DESTINATION ${DESTINATION_DIR})
 #install(TARGETS surfaceengine DESTINATION ${DESTINATION_DIR})
 
 # Orbital engine - molecular orbitals
-#set(orbitalengine_SRCS iso.cpp orbitalengine.cpp)
-#qt4_wrap_ui(orbitalengine_UIS orbitalsettingswidget.ui)
-#qt4_automoc(${orbitalengine_SRCS})
-#add_library(orbitalengine MODULE ${orbitalengine_SRCS} ${orbitalengine_UIS})
-#target_link_libraries(orbitalengine ${LINK_LIBS})
-#install(TARGETS orbitalengine DESTINATION ${DESTINATION_DIR})
+set(orbitalengine_SRCS iso.cpp orbitalengine.cpp)
+qt4_wrap_ui(orbitalengine_UIS orbitalsettingswidget.ui)
+qt4_automoc(${orbitalengine_SRCS})
+add_library(orbitalengine MODULE ${orbitalengine_SRCS} ${orbitalengine_UIS})
+target_link_libraries(orbitalengine ${LINK_LIBS})
+install(TARGETS orbitalengine DESTINATION ${DESTINATION_DIR})
 
 # Axes engine - display the axes
 set(axesengine_SRCS axesengine.cpp)

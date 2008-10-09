@@ -265,15 +265,16 @@ namespace Avogadro {
   {
     // Attempt to find a grid
     Molecule *mol = const_cast<Molecule *>(pd->molecule());
-    if (!mol->HasData(OBGenericDataType::GridData))
+    QList<Cube *> cubes = mol->cubes();
+    if (mol->cubes().size() == 0) {
+      qDebug() << "No cubes.";
       return;
-    else
-    {
-      if (!m_settingsWidget)
-      {
+    }
+    else {
+      if (!m_settingsWidget) {
         // Use first grid/orbital
-        m_grid->setGrid(static_cast<OBGridData *>(mol->GetData(OBGenericDataType::GridData)));
-        m_grid2->setGrid(static_cast<OBGridData *>(mol->GetData(OBGenericDataType::GridData)));
+        m_grid->setCube(cubes[0]);
+        m_grid2->setCube(cubes[0]);
       }
       else
       {
@@ -281,8 +282,8 @@ namespace Avogadro {
         {
           // Use first grid/orbital
           // Two grids -- one for positive isovalue, one for negative
-          m_grid->setGrid(static_cast<OBGridData *>(mol->GetData(OBGenericDataType::GridData)));
-          m_grid2->setGrid(static_cast<OBGridData *>(mol->GetData(OBGenericDataType::GridData)));
+          m_grid->setCube(cubes[0]);
+          m_grid2->setCube(cubes[0]);
 
           // Add the orbitals
           m_molecule = mol;
@@ -292,33 +293,27 @@ namespace Avogadro {
         }
         else
         {
-          vector<OBGenericData*> data = mol->GetAllData(OBGenericDataType::GridData);
           unsigned int index = m_settingsWidget->orbitalCombo->currentIndex();
-          if (index >= data.size())
+          if (index >= cubes.size())
           {
             qDebug() << "Invalid orbital selected.";
             return;
           }
-          m_grid->setGrid(static_cast<OBGridData *>(data[index]));
-          m_grid2->setGrid(static_cast<OBGridData *>(data[index]));
+          m_grid->setCube(cubes[index]);
+          m_grid2->setCube(cubes[index]);
         }
       }
     }
 
     // attribute is the text key for the grid (as an std::string)
-    qDebug() << " Orbital title: " << m_grid->grid()->GetAttribute().c_str();
+    qDebug() << " Orbital title: " << m_grid->cube()->name();
 
-    qDebug() << "Min value = " << m_grid->grid()->GetMinValue()
-             << "Max value = " << m_grid->grid()->GetMaxValue();
+//    qDebug() << "Min value = " << m_grid->grid()->GetMinValue()
+//             << "Max value = " << m_grid->grid()->GetMaxValue();
 
     // Find the minima for the grid
-    m_min = Vector3f(m_grid->grid()->GetOriginVector().x(),
-                     m_grid->grid()->GetOriginVector().y(),
-                     m_grid->grid()->GetOriginVector().z());
-    m_max = Vector3f(m_grid->grid()->GetMaxVector().x(),
-                     m_grid->grid()->GetMaxVector().y(),
-                     m_grid->grid()->GetMaxVector().z());
-
+    m_min = m_grid->cube()->min();
+    m_max = m_grid->cube()->max();
     // We may need some logic to check if a cube is an orbital or not...
     // (e.g., someone might bring in spin density = always positive)
     m_grid->setIsoValue(m_iso);
@@ -337,15 +332,15 @@ namespace Avogadro {
     if (tmp < 0) tmp = 0;
     m_settingsWidget->orbitalCombo->clear();
     m_molecule->lock()->lockForRead();
-    vector<OBGenericData*> data = m_molecule->GetAllData(OBGenericDataType::GridData);
-    for (unsigned int i = 0; i < data.size(); ++i) {
-      QString str = QString(data[i]->GetAttribute().c_str());
+    QList<Cube *> cubes = m_molecule->cubes();
+    for (unsigned int i = 0; i < cubes.size(); ++i) {
+      QString str = cubes[i]->name();
       m_settingsWidget->orbitalCombo->addItem(str);
     }
     // If all of the orbitals disappear the molecule has been cleared
-    if (data.size() == 0) {
-      m_grid->setGrid(0);
-      m_grid2->setGrid(0);
+    if (cubes.size() == 0) {
+      m_grid->setCube(0);
+      m_grid2->setCube(0);
       disconnect(m_isoGen, 0, this, 0);
       disconnect(m_isoGen2, 0, this, 0);
       delete m_isoGen;

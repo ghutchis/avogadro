@@ -535,7 +535,7 @@ namespace Avogadro
     qDebug() << "start run()";
     int nx, ny, nz;
 
-    if (m_grid->grid() == 0)
+    if (m_grid->cube() == 0)
     {
       qDebug() << "m_grid == 0 => returning...";
       return;
@@ -569,7 +569,9 @@ namespace Avogadro
     else
     {
       // Don't do any interpolation...
-      m_grid->grid()->GetNumberOfPoints(nx, ny, nz);
+      Eigen::Vector3i dim;
+      dim = m_grid->cube()->dimensions();
+      nx = dim.x(); ny = dim.y(); nz = dim.z();
       m_stepSize = (m_max.x() - m_min.x()) / nx;
 
       // Just go to nX-1 as the cube extends one unit from the given point
@@ -627,17 +629,10 @@ namespace Avogadro
         m_stepSize = 0.10;
       }
     }
-    m_min = Vector3f(m_grid->grid()->GetOriginVector().x(),
-                     m_grid->grid()->GetOriginVector().y(),
-                     m_grid->grid()->GetOriginVector().z());
+    m_min = m_grid->cube()->min();
+
     // Work out the max coordinate too
-    int nx, ny, nz;
-    m_grid->grid()->GetNumberOfPoints(nx, ny, nz);
-    double x[3], y[3], z[3];
-    m_grid->grid()->GetAxes(x, y, z);
-    m_max = Vector3f(m_min.x() + nx * x[0],
-                     m_min.y() + ny * y[1],
-                     m_min.z() + nz * z[2]);
+    m_max = m_grid->cube()->max();
 
     // Right now we are just using one tessellation method
     m_tessellation=&IsoGen::vMarchCube1;
@@ -679,7 +674,7 @@ namespace Avogadro
     #endif
 
     // Check we have a valid grid
-    if (m_grid->grid() == 0)
+    if (m_grid->cube() == 0)
     {
       qDebug() << "No valid grid :-(";
       return;
@@ -805,7 +800,7 @@ namespace Avogadro
     float fZ = k * m_stepSize + m_min.z();
 
     // Check we have a valid grid
-    if (m_grid->grid() == 0)
+    if (m_grid->cube() == 0)
     {
       qDebug() << "No valid grid :-(";
       return;

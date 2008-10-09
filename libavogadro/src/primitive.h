@@ -439,6 +439,8 @@ namespace Avogadro {
       void deleteHydrogens(Atom *atom);
       void deleteHydrogens();
 
+      Cube *newCube();
+      void deleteCube(Cube *cube);
 
       /// FIXME These are new functions that need fleshing out to work properly
       unsigned int numAtoms() const;

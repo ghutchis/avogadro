@@ -69,6 +69,7 @@
 #include <openbabel/mol.h> // Shouldn't need this but get compilation error without
 #include <openbabel/griddata.h>
 #include <openbabel/grid.h>
+#include "../cube.h"
 
 namespace Avogadro
 {
@@ -84,35 +85,28 @@ namespace Avogadro
   class Grid : public ImplicitFunction
   {
   public:
-    Grid(): m_iso(0.), m_gd(0) { ; }
-    ~Grid()
-    {
-      if (m_gd)
-      {
-        //        delete m_gd;
-        m_gd = 0;
-      }
-    }
+    Grid(): m_iso(0.), m_cube(0) { ; }
+    ~Grid() { ; }
 
-    void setIsoValue(float i) { m_iso = i; }
-    float isoValue() { return m_iso; }
-    void setGrid(OpenBabel::OBGridData *gd) { m_gd = gd; }
-    OpenBabel::OBGridData* grid() { return m_gd; }
+    inline void setIsoValue(float i) { m_iso = i; }
+    inline float isoValue() { return m_iso; }
+    inline void setCube(Cube *cube) { m_cube = cube; }
+    inline Cube* cube() { return m_cube; }
 
     float eval(float x, float y, float z)
     {
-      OpenBabel::vector3 v(x, y, z);
-      return m_gd->GetValue(v) - m_iso;
+      Eigen::Vector3d v(x, y, z);
+      return 0.0; //m_cube->value(v) - m_iso;
     }
 
     float eval(int i, int j, int k)
     {
-      return m_gd->GetValue(i, j, k) - m_iso;
+      return m_cube->value(i, j, k) - m_iso;
     }
 
   private:
     double m_iso;
-    OpenBabel::OBGridData *m_gd;
+    Cube *m_cube;
   };
 
   // Triangle structure

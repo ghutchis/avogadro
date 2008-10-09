@@ -22,11 +22,11 @@
   02110-1301, USA.
  **********************************************************************/
 
- #include "cube.h"
+#include "cube.h"
 
- #include <QDebug>
+#include <QDebug>
 
- namespace Avogadro {
+namespace Avogadro {
 
   Cube::Cube() : m_data(0), m_min(0.0, 0.0, 0.0), m_max(0.0, 0.0, 0.0),
     m_spacing(0.0, 0.0, 0.0), m_points(0, 0, 0)
@@ -35,26 +35,6 @@
 
   Cube::~Cube()
   {
-  }
-
-  Eigen::Vector3d Cube::min()
-  {
-    return m_min;
-  }
-
-  Eigen::Vector3d Cube::max()
-  {
-    return m_max;
-  }
-
-  Eigen::Vector3d Cube::spacing()
-  {
-    return m_spacing;
-  }
-
-  Eigen::Vector3i Cube::dimensions()
-  {
-    return m_points;
   }
 
   bool Cube::setLimits(const Eigen::Vector3d &min, const Eigen::Vector3d &max,
@@ -163,7 +143,7 @@
       return false;
   }
 
- } // End namespace Avogadro
+} // End namespace Avogadro
 
- #include "cube.moc"
+#include "cube.moc"
  
