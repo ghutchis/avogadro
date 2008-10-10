@@ -30,10 +30,6 @@
 #include <avogadro/primitive.h>
 #include "../cube.h"
 
-#include <openbabel/math/vector3.h>
-#include <openbabel/griddata.h>
-#include <openbabel/grid.h>
-
 #include <Eigen/Geometry>
 
 #include <QGLWidget>
@@ -624,6 +620,40 @@ namespace Avogadro {
     Engine::removePrimitive(primitive);
   }
 
+  void SurfaceEngine::writeSettings(QSettings &settings) const
+  {
+    Engine::writeSettings(settings);
+    settings.setValue("opacity", 20*m_alpha);
+    settings.setValue("renderMode", m_renderMode);
+    settings.setValue("colorMode", m_colorMode);
+    /*
+    settings.setValue("colorRed", m_color.red());
+    settings.setValue("colorGreen", m_color.green());
+    settings.setValue("colorBlue", m_color.blue());
+    */
+  }
+
+  void SurfaceEngine::readSettings(QSettings &settings)
+  {
+    Engine::readSettings(settings);
+    setOpacity(settings.value("opacity", 20).toInt());
+    setRenderMode(settings.value("renderMode", 0).toInt());
+    setColorMode(settings.value("colorMode", 0).toInt());
+    m_color.set(settings.value("colorRed", 1.0).toDouble(),
+                settings.value("colorGreen", 0.0).toDouble(),
+                settings.value("colorBlue", 0.0).toDouble());
+
+    if(m_settingsWidget)
+    {
+      m_settingsWidget->opacitySlider->setValue(static_cast<int>(20*m_alpha));
+      m_settingsWidget->renderCombo->setCurrentIndex(m_renderMode);
+      m_settingsWidget->colorCombo->setCurrentIndex(m_colorMode);
+      QColor initial;
+      initial.setRgbF(m_color.red(), m_color.green(), m_color.blue());
+      m_settingsWidget->customColorButton->setColor(initial);
+    }
+  }
+
   VDWGridThread::VDWGridThread(QObject *parent): QThread(parent), m_molecule(0),
     m_stepSize(0.0), m_padding(0.0)
   {
@@ -751,40 +781,6 @@ namespace Avogadro {
     m_grid->setIsoValue(0.0);
 
     m_mutex.unlock();
-  }
-
-  void SurfaceEngine::writeSettings(QSettings &settings) const
-  {
-    Engine::writeSettings(settings);
-    settings.setValue("opacity", 20*m_alpha);
-    settings.setValue("renderMode", m_renderMode);
-    settings.setValue("colorMode", m_colorMode);
-    /*
-    settings.setValue("colorRed", m_color.red());
-    settings.setValue("colorGreen", m_color.green());
-    settings.setValue("colorBlue", m_color.blue());
-    */
-  }
-
-  void SurfaceEngine::readSettings(QSettings &settings)
-  {
-    Engine::readSettings(settings);
-    setOpacity(settings.value("opacity", 20).toInt());
-    setRenderMode(settings.value("renderMode", 0).toInt());
-    setColorMode(settings.value("colorMode", 0).toInt());
-    m_color.set(settings.value("colorRed", 1.0).toDouble(),
-                settings.value("colorGreen", 0.0).toDouble(),
-                settings.value("colorBlue", 0.0).toDouble());
-
-    if(m_settingsWidget)
-    {
-      m_settingsWidget->opacitySlider->setValue(static_cast<int>(20*m_alpha));
-      m_settingsWidget->renderCombo->setCurrentIndex(m_renderMode);
-      m_settingsWidget->colorCombo->setCurrentIndex(m_colorMode);
-      QColor initial;
-      initial.setRgbF(m_color.red(), m_color.green(), m_color.blue());
-      m_settingsWidget->customColorButton->setColor(initial);
-    }
   }
 
 }
