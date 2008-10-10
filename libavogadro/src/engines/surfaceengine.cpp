@@ -28,6 +28,7 @@
 
 #include <config.h>
 #include <avogadro/primitive.h>
+#include "../cube.h"
 
 #include <openbabel/math/vector3.h>
 #include <openbabel/griddata.h>
@@ -706,69 +707,47 @@ namespace Avogadro {
     }
     m_molecule->lock()->unlock();
 
-    OBFloatGrid grid;
-    OBMol mol = m_molecule->OBMol();
-    grid.Init(mol, m_stepSize, 2.5);
-    vector3 min;
-    int xDim, yDim, zDim;
+    Cube *cube = new Cube;
+    cube->setLimits(m_molecule, m_stepSize, 2.5);
+    Vector3d min = cube->min();
+    Vector3i dim = cube->dimensions();
 
-    min = grid.GetMin();
-
-    xDim = grid.GetXdim();
-    yDim = grid.GetYdim();
-    zDim = grid.GetZdim();
-
-    vector3 coord;
-    double distance/*, minDistance*/;
-
-    // Now set up our VdW grid
-    OBGridData *vdwGrid = new OBGridData;
-    vector3 xAxis, yAxis, zAxis;
-    xAxis = vector3(m_stepSize, 0.0, 0.0);
-    yAxis = vector3(0.0, m_stepSize, 0.0);
-    zAxis = vector3(0.0, 0.0, m_stepSize);
-
-    vdwGrid->SetNumberOfPoints(xDim, yDim, zDim);
-    vdwGrid->SetLimits(min, xAxis, yAxis, zAxis);
+    Vector3d coord;
+    double distance;
  
-    for (int i = 0; i < xDim; ++i) 
-      for (int j = 0; j < yDim; ++j) 
-        for (int k = 0; k < zDim; ++k) 
-          vdwGrid->SetValue(i, j, k, -1.0E+10);
+    for (int i = 0; i < dim.x(); ++i)
+      for (int j = 0; j < dim.y(); ++j)
+        for (int k = 0; k < dim.z(); ++k)
+          cube->setValue(i, j, k, -1.0E+10);
 
-    int index[3];
-    double pos[3];
-    int numBoxes = (int) 3.0 / m_stepSize;
+    Vector3i index;
+    int numBoxes = static_cast<int>(3.0 / m_stepSize);
     if (numBoxes < 4)
       numBoxes = 4;
-    //cout << "numBoxes = " << numBoxes << endl;
+
     for (int ai=0; ai < surfaceAtomsPos.size(); ai++) {
-      pos[0] = surfaceAtomsPos[ai][0];
-      pos[1] = surfaceAtomsPos[ai][1];
-      pos[2] = surfaceAtomsPos[ai][2];
-      grid.CoordsToIndex(index, pos);
-      // cout << "center(i,j,k) = " << index[0] << ", " << index[1] << ", " << index[2] << endl; 
+      index = cube->indexVector(surfaceAtomsPos[ai]);
 
       for (int i = index[0] - numBoxes; i < index[0] + numBoxes; ++i) {
         if (i < 0) continue;
-        coord.SetX(min[0] + i * m_stepSize);
+        coord(0) = min[0] + i * m_stepSize;
         for (int j = index[1] - numBoxes; j < index[1] + numBoxes; ++j) {
           if (j < 0) continue;
-          coord.SetY(min[1] + j * m_stepSize);
+          coord(1) = min[1] + j * m_stepSize;
           for (int k = index[2] - numBoxes; k < index[2] + numBoxes; ++k) {
             if (k < 0) continue;
-            coord.SetZ(min[2] + k * m_stepSize);
-            distance = sqrt(coord.distSq(surfaceAtomsPos[ai]));
+            coord(2) = min[2] + k * m_stepSize;
+            distance = fabs((coord - surfaceAtomsPos[ai]).norm());
             distance -= etab.GetVdwRad(surfaceAtomsNum[ai]);
-            const double value = vdwGrid->GetValue(i, j, k);
+            const double value = cube->value(i, j, k);
             if ((value < -1.0E+9) || (distance < -value))
-              vdwGrid->SetValue(i, j, k, -distance);
+              cube->setValue(i, j, k, -distance);
           }
         }
       }
     }
 
-    m_grid->setGrid(vdwGrid);
+    m_grid->setCube(cube);
     m_grid->setIsoValue(0.0);
 
     m_mutex.unlock();

@@ -83,7 +83,7 @@ namespace Avogadro {
      * @param spacing The interval between points in the cube.
      * @param padding The padding to use around the extents of the molecule.
      */
-    bool setLimits(const Molecule &mol, double spacing, double padding);
+    bool setLimits(const Molecule *mol, double spacing, double padding);
 
     /**
      * @return Vector containing all the data in a one-dimensional array.
@@ -99,13 +99,21 @@ namespace Avogadro {
      * @return Index of the point closest to the position supplied.
      * @param pos Position to get closest index for.
      */
-    int index(const Eigen::Vector3d &pos);
+    unsigned int index(const Eigen::Vector3d &pos) const;
+
+    /**
+     * @return Index vector of the point closest to the position supplied, in
+     * the form of i, j, k.
+     * @param pos Position to get closest index for.
+     * @return The i, j, k index closest to the position supplied.
+     */
+    Eigen::Vector3i indexVector(const Eigen::Vector3d &pos) const;
 
     /**
      * @param index Index to be translated to a position.
      * @return Position of the given index.
      */
-    Eigen::Vector3d position(int index);
+    Eigen::Vector3d position(int index) const;
 
     /**
      * This function is very quick as it just returns the value at the point.

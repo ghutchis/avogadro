@@ -62,27 +62,30 @@ namespace Avogadro {
     return setLimits(min, max, points);
   }
 
-  bool Cube::setLimits(const Molecule &mol, double spacing, double padding)
+  bool Cube::setLimits(const Molecule *mol, double spacing, double padding)
   {
-    QList<Atom *> atoms = mol.atoms();
+    QList<Atom *> atoms = mol->atoms();
     Eigen::Vector3d min(0.0, 0.0, 0.0);
     Eigen::Vector3d max(0.0, 0.0, 0.0);
     foreach (Atom *atom, atoms) {
       if (atom->pos().x() < min.x())
-        min.x() = atom->pos().x();
+        min[0] = atom->pos().x();
       else if (atom->pos().x() > max.x())
-        max.x() = atom->pos().x();
+        max(0) = atom->pos().x();
       if (atom->pos().y() < min.y())
-        min.y() = atom->pos().y();
+        min(1) = atom->pos().y();
       else if (atom->pos().y() > max.y())
-        max.y() = atom->pos().y();
+        max(1) = atom->pos().y();
       if (atom->pos().z() < min.z())
-        min.z() = atom->pos().z();
+        min(2) = atom->pos().z();
       else if (atom->pos().z() > max.z())
-        max.z() = atom->pos().z();
+        max(2) = atom->pos().z();
     }
-    min = min - Eigen::Vector3d(padding, padding, padding);
-    max = max + Eigen::Vector3d(padding, padding, padding);
+
+    // Now to take care of the padding term
+    min += Eigen::Vector3d(-padding, -padding, -padding);
+    max += Eigen::Vector3d(padding, padding, padding);
+
     return setLimits(min, max, spacing);
   }
 
@@ -102,17 +105,27 @@ namespace Avogadro {
       return false;
   }
 
-  int Cube::index(const Eigen::Vector3d &pos)
+  unsigned int Cube::index(const Eigen::Vector3d &pos) const
   {
-    int x, y, z;
+    int i, j, k;
     // Calculate how many steps each coordinate is along its axis
-    x = (pos.x() - m_min.x()) / m_spacing.x();
-    y = (pos.y() - m_min.y()) / m_spacing.y();
-    z = (pos.z() - m_min.z()) / m_spacing.z();
-    return x*m_points.y()*m_points.z() + y*m_points.z() + z;
+    i = (pos.x() - m_min.x()) / m_spacing.x();
+    j = (pos.y() - m_min.y()) / m_spacing.y();
+    k = (pos.z() - m_min.z()) / m_spacing.z();
+    return i*m_points.y()*m_points.z() + j*m_points.z() + k;
   }
 
-  Eigen::Vector3d Cube::position(int index)
+  Eigen::Vector3i Cube::indexVector(const Eigen::Vector3d &pos) const
+  {
+    // Calculate how many steps each coordinate is along its axis
+    int i, j, k;
+    i = (pos.x() - m_min.x()) / m_spacing.x();
+    j = (pos.y() - m_min.y()) / m_spacing.y();
+    k = (pos.z() - m_min.z()) / m_spacing.z();
+    return Eigen::Vector3i(i, j, k);
+  }
+
+  Eigen::Vector3d Cube::position(int index) const
   {
     int x, y, z;
     x = static_cast<int>(index / (m_points.y()*m_points.z()));
@@ -129,7 +142,7 @@ namespace Avogadro {
     if (index < m_data.size())
       return m_data.at(index);
     else {
-      qDebug() << "Attempt to identify out of range index" << index << m_data.size();
+//      qDebug() << "Attempt to identify out of range index" << index << m_data.size();
       return 0.0;
     }
   }
