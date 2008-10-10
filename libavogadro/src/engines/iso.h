@@ -166,6 +166,7 @@ namespace Avogadro
 
     void vGetNormal(Eigen::Vector3f &rfNormal, const float fX, const float fY,
         const float fZ);
+    void vGetNormal(Eigen::Vector3f &rfNormal, int i, int j, int k);
     void vMarchCube1(const float fX, const float fY, const float fZ);
     void vMarchCube1(int i, int j, int k);
 //    void vMarchCube2(const float fX, const float fY, const float fZ);

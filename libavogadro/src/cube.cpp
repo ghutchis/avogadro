@@ -132,6 +132,12 @@ namespace Avogadro {
       return 0.0;
   }
 
+  double Cube::value(const Eigen::Vector3d &) const
+  {
+    // This is a really expensive operation and so should be avoided
+    // Interpolate the value at the supplied vector
+  }
+
   bool Cube::setValue(int i, int j, int k, double value)
   {
     int index = i*m_points.y()*m_points.z() + j*m_points.z() + k;
@@ -146,4 +152,3 @@ namespace Avogadro {
 } // End namespace Avogadro
 
 #include "cube.moc"
- 

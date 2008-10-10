@@ -94,6 +94,7 @@ namespace Avogadro {
     Eigen::Vector3d position(int index);
 
     double value(int i, int j, int k) const;
+    double value(const Eigen::Vector3d &pos) const;
     bool setValue(int i, int j, int k, double value);
 
     inline void setName(QString name) { m_name = name; }
@@ -108,4 +109,3 @@ namespace Avogadro {
 } // End namespace Avogadro
 
  #endif
- 

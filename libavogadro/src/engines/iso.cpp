@@ -64,7 +64,7 @@ namespace Avogadro
   #else
   const float IsoGen::fTargetValue __attribute__((aligned(16))) = 0.0f;
   #endif
- 
+
   // These tables are used so that everything can be done in little loops that
   // you can look at all at once rather than in pages and pages of unrolled code
   // a2fVertexOffset lists the positions, relative to vertex0, of each of the
@@ -656,11 +656,20 @@ namespace Avogadro
     rfNormal.normalize();
   }
 
+  void IsoGen::vGetNormal(Eigen::Vector3f &rfNormal, int i, int j, int k)
+  {
+    rfNormal = Vector3f(m_grid->eval(i-1, j, k) - m_grid->eval(i+1, j, k),
+        m_grid->eval(i, j-1, k) - m_grid->eval(i, j+1, k),
+        m_grid->eval(i, j, k-1) - m_grid->eval(i, j, k+1));
+
+    rfNormal.normalize();
+  }
+
   // vMarchCube1 performs the Marching Cubes algorithm on a single cube
   void IsoGen::vMarchCube1(const float fX, const float fY, const float fZ)
   {
     long iTriangle, iEdge, iEdgeFlags, iFlagIndex=0;
-    
+
     #ifdef WIN32
     Vector3f asEdgeVertex[12];
     Vector3f asEdgeNorm[12];
@@ -861,17 +870,16 @@ namespace Avogadro
           fOffset = 0.5f;
 
         // The  - 0.5 * m_stepSize correction is only needed if for vMarchCube1(float,float,float)
+        // Do this with ints - much faster and just as accurate with our cubes
+        vGetNormal(asEdgeNorm[iEdge], i, j, k);
         asEdgeVertex[iEdge] = Vector3f(
           fX + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][0]
-             + fOffset * a2fEdgeDirection[iEdge][0]) * m_stepSize
-             /*- 0.5*m_stepSize*/,
+             + fOffset * a2fEdgeDirection[iEdge][0]) * m_stepSize,
           fY + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][1]
-             + fOffset * a2fEdgeDirection[iEdge][1]) * m_stepSize
-             /*- 0.5*m_stepSize*/,
+             + fOffset * a2fEdgeDirection[iEdge][1]) * m_stepSize,
           fZ + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][2]
-             + fOffset * a2fEdgeDirection[iEdge][2]) * m_stepSize
-             /*- 0.5*m_stepSize*/);
-        vGetNormal(asEdgeNorm[iEdge], asEdgeVertex[iEdge].x(), asEdgeVertex[iEdge].y(), asEdgeVertex[iEdge].z());
+             + fOffset * a2fEdgeDirection[iEdge][2]) * m_stepSize);
+//        vGetNormal(asEdgeNorm[iEdge], asEdgeVertex[iEdge].x(), asEdgeVertex[iEdge].y(), asEdgeVertex[iEdge].z());
       }
     }
 
