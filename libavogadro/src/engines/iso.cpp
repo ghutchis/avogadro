@@ -871,7 +871,7 @@ namespace Avogadro
 
         // The  - 0.5 * m_stepSize correction is only needed if for vMarchCube1(float,float,float)
         // Do this with ints - much faster and just as accurate with our cubes
-        vGetNormal(asEdgeNorm[iEdge], i, j, k);
+//        vGetNormal(asEdgeNorm[iEdge], i, j, k);
         asEdgeVertex[iEdge] = Vector3f(
           fX + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][0]
              + fOffset * a2fEdgeDirection[iEdge][0]) * m_stepSize,
@@ -879,7 +879,7 @@ namespace Avogadro
              + fOffset * a2fEdgeDirection[iEdge][1]) * m_stepSize,
           fZ + (a2fVertexOffset[a2iEdgeConnection[iEdge][0]][2]
              + fOffset * a2fEdgeDirection[iEdge][2]) * m_stepSize);
-//        vGetNormal(asEdgeNorm[iEdge], asEdgeVertex[iEdge].x(), asEdgeVertex[iEdge].y(), asEdgeVertex[iEdge].z());
+        vGetNormal(asEdgeNorm[iEdge], asEdgeVertex[iEdge].x(), asEdgeVertex[iEdge].y(), asEdgeVertex[iEdge].z());
       }
     }
 

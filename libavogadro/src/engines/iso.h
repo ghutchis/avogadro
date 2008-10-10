@@ -96,7 +96,7 @@ namespace Avogadro
     float eval(float x, float y, float z)
     {
       Eigen::Vector3d v(x, y, z);
-      return 0.0; //m_cube->value(v) - m_iso;
+      return m_cube->value(v) - m_iso;
     }
 
     float eval(int i, int j, int k)

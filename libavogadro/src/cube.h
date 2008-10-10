@@ -67,8 +67,22 @@ namespace Avogadro {
      */
     bool setLimits(const Eigen::Vector3d &min, const Eigen::Vector3d &max,
                    const Eigen::Vector3i &points);
+
+    /**
+     * Set the limits of the cube.
+     * @param min The minimum point in the cube.
+     * @param max The maximum point in the cube.
+     * @param spacing The interval between points in the cube.
+     */
     bool setLimits(const Eigen::Vector3d &min, const Eigen::Vector3d &max,
                    double spacing);
+
+    /**
+     * Set the limits of the cube by the molecule supplied with padding.
+     * @param mol The molecule to use when finding bounds.
+     * @param spacing The interval between points in the cube.
+     * @param padding The padding to use around the extents of the molecule.
+     */
     bool setLimits(const Molecule &mol, double spacing, double padding);
 
     /**
@@ -93,8 +107,34 @@ namespace Avogadro {
      */
     Eigen::Vector3d position(int index);
 
+    /**
+     * This function is very quick as it just returns the value at the point.
+     * @return Cube value at the integer point i, j, k.
+     */
     double value(int i, int j, int k) const;
+
+    /**
+     * This function is very quick as it just returns the value at the point.
+     * @return Cube value at the integer point pos.
+     */
+    double value(const Eigen::Vector3i &pos) const;
+
+    /**
+     * This function uses trilinear interpolation to find the value at points
+     * between those specified in the cube.
+     * @return Cube value at the specified position.
+     * @warning This function is quite computationally expensive and should be
+     * avoided where possible.
+     */
     double value(const Eigen::Vector3d &pos) const;
+
+    /**
+     * Sets the value at the specified point in the cube.
+     * @param i x compenent of the position.
+     * @param j y compenent of the position.
+     * @param k z compenent of the position.
+     * @param value Value at the specified position.
+     */
     bool setValue(int i, int j, int k, double value);
 
     inline void setName(QString name) { m_name = name; }
