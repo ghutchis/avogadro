@@ -36,9 +36,10 @@
 
 namespace Avogadro {
 
+  class Atom;
   class SurfacePrivateData;
   class SurfaceSettingsWidget;
-  
+
   //! VDWGridThread
   class VDWGridThread : public QThread
   {
@@ -48,7 +49,7 @@ namespace Avogadro {
       VDWGridThread(QObject *parent=0);
       ~VDWGridThread();
 
-      void init(Molecule *molecule, PrimitiveList &primitives, const PainterDevice* pd, 
+      void init(Molecule *molecule, PrimitiveList &primitives, const PainterDevice* pd,
                 double stepSize = 0.0);
       void run();
       Grid* grid();
@@ -156,29 +157,29 @@ namespace Avogadro {
       void setColor(const QColor& color);
 
       // clipping stuff
-      void setClipEnabled(int value) 
-      { 
-        m_clip = value; 
+      void setClipEnabled(int value)
+      {
+        m_clip = value;
         emit changed();
       }
-      void setClipEqA(double value) 
+      void setClipEqA(double value)
       {
-        m_clipEqA = value; 
-        emit changed();
-      } 
-      void setClipEqB(double value) 
-      {
-        m_clipEqB = value; 
+        m_clipEqA = value;
         emit changed();
       }
-      void setClipEqC(double value) 
+      void setClipEqB(double value)
       {
-        m_clipEqC = value; 
+        m_clipEqB = value;
         emit changed();
       }
-      void setClipEqD(double value) 
+      void setClipEqC(double value)
       {
-        m_clipEqD = value; 
+        m_clipEqC = value;
+        emit changed();
+      }
+      void setClipEqD(double value)
+      {
+        m_clipEqD = value;
         emit changed();
       }
       // clipping stuff

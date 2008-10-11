@@ -1171,24 +1171,19 @@ namespace Avogadro {
       // General case: the farthest atom is the one that is located the
       // farthest in the direction pointed to by centerOffset.
       else {
-      /// FIXME Bring back the general case! Need atom iterator...
-//        std::vector<OBAtom*>::iterator atom_iterator;
-        Atom *atom;
-/*        double x, max_x;
-        for(
-            atom = static_cast<Atom*>(d->molecule->BeginAtom(atom_iterator)),
-              max_x = centerOffset.dot(atom->pos()),
-              d->farthestAtom = atom;
-            atom;
-            atom = static_cast<Atom*>(d->molecule->NextAtom(atom_iterator))
-            ) {
-          x = centerOffset.dot(atom->pos());
-          if(x > max_x)
-            {
+        QList<Atom *> atoms = d->molecule->atoms();
+        double x, max_x;
+        if (atoms.size()) {
+          d->farthestAtom = atoms.at(0);
+          max_x = centerOffset.dot(d->farthestAtom->pos());
+          foreach (Atom *atom, atoms) {
+            x = centerOffset.dot(atom->pos());
+            if (x > max_x) {
               max_x = x;
               d->farthestAtom = atom;
             }
-        } */
+          }
+        }
       }
     }
   }

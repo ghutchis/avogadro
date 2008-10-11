@@ -28,7 +28,9 @@
 
 #include <config.h>
 #include <avogadro/primitive.h>
-#include "../cube.h"
+#include <avogadro/atom.h>
+#include <avogadro/cube.h>
+#include <avogadro/molecule.h>
 
 #include <Eigen/Geometry>
 
@@ -53,7 +55,7 @@ namespace Avogadro {
     connect(m_isoGen, SIGNAL(finished()), this, SLOT(isoGenFinished()));
     m_color = Color(1.0, 0.0, 0.0, m_alpha);
     m_surfaceValid = false;
-      
+
     // clipping stuff
     m_clip = false;
     m_clipEqA =1.0;
@@ -184,7 +186,7 @@ namespace Avogadro {
       GLdouble eq[4] = {m_clipEqA, m_clipEqB, m_clipEqC, m_clipEqD};
       glEnable(GL_CLIP_PLANE0);
       glClipPlane(GL_CLIP_PLANE0, eq);
-      // Rendering the mesh's clip edge 
+      // Rendering the mesh's clip edge
       glEnable(GL_STENCIL_TEST);
       glClear(GL_STENCIL_BUFFER_BIT);
       glDisable(GL_DEPTH_TEST);
@@ -202,8 +204,8 @@ namespace Avogadro {
       glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
       glEnable(GL_DEPTH_TEST);
       glDisable(GL_CLIP_PLANE0);
-      glStencilFunc(GL_NOTEQUAL, 0, ~0); 
-      // stencil test will pass only when stencil buffer value = 0; 
+      glStencilFunc(GL_NOTEQUAL, 0, ~0);
+      // stencil test will pass only when stencil buffer value = 0;
       // (~0 = 0x11...11)
       glPushMatrix();
       Vector3f normalEq(m_clipEqA, m_clipEqB, m_clipEqC);
@@ -214,14 +216,14 @@ namespace Avogadro {
 
       if ( (m_clipEqB == 0.0) && (m_clipEqC == 0.0) ) {
         if (m_clipEqA < 0.0 ) {
-          point1.x() = -point1.x();    
-          point1.y() = -point1.y();    
-          point2.x() = -point2.x();    
-          point2.y() = -point2.y();    
-          point3.x() = -point3.x();    
-          point3.y() = -point3.y();    
-          point4.x() = -point4.x();    
-          point4.y() = -point4.y();    
+          point1.x() = -point1.x();
+          point1.y() = -point1.y();
+          point2.x() = -point2.x();
+          point2.y() = -point2.y();
+          point3.x() = -point3.x();
+          point3.y() = -point3.y();
+          point4.x() = -point4.x();
+          point4.y() = -point4.y();
         }
       }
       else {
@@ -232,13 +234,13 @@ namespace Avogadro {
         axis.normalize();
         Matrix3f mat(AngleAxisf(angle, axis));
 
-        point1 = mat * point1;    
-        point2 = mat * point2;    
-        point3 = mat * point3;    
-        point4 = mat * point4;    
+        point1 = mat * point1;
+        point2 = mat * point2;
+        point3 = mat * point3;
+        point4 = mat * point4;
       }
 
-      glBegin(GL_QUADS); // rendering the plane quad. Note, it should be big 
+      glBegin(GL_QUADS); // rendering the plane quad. Note, it should be big
                         // enough to cover all clip edge area.
 
       glVertex3fv(point1.data());
@@ -248,7 +250,7 @@ namespace Avogadro {
       glEnd();
       glPopMatrix();
       // End rendering mesh's clip edge
-      // Rendering mesh  
+      // Rendering mesh
       glDisable(GL_STENCIL_TEST);
       glEnable(GL_CLIP_PLANE0); // enabling clip plane again
     }
@@ -339,14 +341,14 @@ namespace Avogadro {
 
       if ( (m_clipEqB == 0.0) && (m_clipEqC == 0.0) ) {
         if (m_clipEqA < 0.0 ) {
-          point1.x() = -point1.x();    
-          point1.y() = -point1.y();    
-          point2.x() = -point2.x();    
-          point2.y() = -point2.y();    
-          point3.x() = -point3.x();    
-          point3.y() = -point3.y();    
-          point4.x() = -point4.x();    
-          point4.y() = -point4.y();    
+          point1.x() = -point1.x();
+          point1.y() = -point1.y();
+          point2.x() = -point2.x();
+          point2.y() = -point2.y();
+          point3.x() = -point3.x();
+          point3.y() = -point3.y();
+          point4.x() = -point4.x();
+          point4.y() = -point4.y();
         }
       }
       else {
@@ -546,7 +548,7 @@ namespace Avogadro {
       connect(m_settingsWidget->colorCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(setColorMode(int)));
       connect(m_settingsWidget->customColorButton, SIGNAL(colorChanged(QColor)), this, SLOT(setColor(QColor)));
       connect(m_settingsWidget, SIGNAL(destroyed()), this, SLOT(settingsWidgetDestroyed()));
-     
+
       // clipping stuff
       connect(m_settingsWidget->clipCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setClipEnabled(int)));
       connect(m_settingsWidget->ASpinBox, SIGNAL(valueChanged(double)), this, SLOT(setClipEqA(double)));
@@ -744,7 +746,7 @@ namespace Avogadro {
 
     Vector3d coord;
     double distance;
- 
+
     for (int i = 0; i < dim.x(); ++i)
       for (int j = 0; j < dim.y(); ++j)
         for (int k = 0; k < dim.z(); ++k)
