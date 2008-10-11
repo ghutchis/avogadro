@@ -44,7 +44,11 @@
 #include <avogadro/pluginmanager.h>
 #include <avogadro/camera.h>
 #include <avogadro/extension.h>
+
 #include <avogadro/primitive.h>
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+
 #include <avogadro/primitiveitemmodel.h>
 #include <avogadro/toolgroup.h>
 #include <avogadro/povpainter.h>

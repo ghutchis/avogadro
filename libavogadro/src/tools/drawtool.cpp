@@ -30,6 +30,9 @@
 
 #include <avogadro/navigate.h>
 #include <avogadro/primitive.h>
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+#include <avogadro/molecule.h>
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
 #include <avogadro/undosequence.h>

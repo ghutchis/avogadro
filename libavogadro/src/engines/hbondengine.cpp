@@ -27,6 +27,8 @@
 #include <config.h>
 
 #include <avogadro/primitive.h>
+#include <avogadro/atom.h>
+#include <avogadro/molecule.h>
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
 
@@ -43,7 +45,7 @@ using namespace Eigen;
 
 namespace Avogadro {
 
-  HBondEngine::HBondEngine(QObject *parent) : Engine(parent), m_settingsWidget(0), 
+  HBondEngine::HBondEngine(QObject *parent) : Engine(parent), m_settingsWidget(0),
                                               m_width(2), m_radius(2.0), m_angle(120)
   {
     setDescription(tr("Renders hydrogen bonds"));
@@ -76,10 +78,10 @@ namespace Avogadro {
     FOR_PAIRS_OF_MOL (p, mol) {
       OBAtom *a = mol.GetAtom((*p)[0]);
       OBAtom *b = mol.GetAtom((*p)[1]);
-      
+
       if (a->GetDistance(b) > m_radius)
         continue;
-      
+
       if (a->GetDistance(b) < 0.7) // too close
         continue;
 
@@ -109,7 +111,7 @@ namespace Avogadro {
         pd->painter()->drawMultiLine(v1, v2, m_width, 1, stipple);
       }
     }
-    
+
     return true;
   }
 
@@ -133,19 +135,19 @@ namespace Avogadro {
       }
     return m_settingsWidget;
   }
-  
+
   void HBondEngine::setWidth(int value)
   {
     m_width = (double) value;
     emit changed();
   }
-  
+
   void HBondEngine::setRadius(double value)
   {
     m_radius = value;
     emit changed();
   }
-  
+
   void HBondEngine::setAngle(double value)
   {
     m_angle = value;
@@ -158,7 +160,7 @@ namespace Avogadro {
     qDebug() << "Destroyed Settings Widget";
     m_settingsWidget = 0;
   }
-  
+
   void HBondEngine::writeSettings(QSettings &settings) const
   {
     Engine::writeSettings(settings);

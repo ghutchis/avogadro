@@ -27,6 +27,9 @@
 
 #include <config.h>
 #include <avogadro/primitive.h>
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+#include <avogadro/molecule.h>
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
 
@@ -50,7 +53,7 @@ namespace Avogadro {
   Engine* WireEngine::clone() const
   {
     WireEngine* engine = new WireEngine(parent());
-    
+
     engine->setAlias(alias());
     engine->setShowDots(m_showDots);
     engine->setShowMultipleBonds(m_showMulti);
@@ -214,7 +217,7 @@ namespace Avogadro {
       connect(m_settingsWidget->showDotsCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setShowDots(int)));
 
       connect(m_settingsWidget, SIGNAL(destroyed()), this, SLOT(settingsWidgetDestroyed()));
-      
+
       m_settingsWidget->showDotsCheckBox->setCheckState((Qt::CheckState)m_showDots);
       m_settingsWidget->showMultipleCheckBox->setCheckState((Qt::CheckState)m_showMulti);
     }
@@ -226,7 +229,7 @@ namespace Avogadro {
     qDebug() << "Destroyed Settings Widget";
     m_settingsWidget = 0;
   }
-  
+
   void WireEngine::writeSettings(QSettings &settings) const
   {
     Engine::writeSettings(settings);

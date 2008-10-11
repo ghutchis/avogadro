@@ -29,6 +29,10 @@
 #include <avogadro/painter.h>
 #include <avogadro/color.h>
 
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+#include <avogadro/molecule.h>
+
 #include <QGLWidget> // for OpenGL bits
 #include <QDebug>
 

@@ -27,6 +27,8 @@
 
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
+#include <avogadro/atom.h>
+#include <avogadro/molecule.h>
 
 #include <QDebug>
 
@@ -118,7 +120,7 @@ namespace Avogadro {
       m_settingsWidget->customLabel->setEnabled(true);
       m_settingsWidget->xDipoleSpinBox->setEnabled(true);
       m_settingsWidget->yDipoleSpinBox->setEnabled(true);
-      m_settingsWidget->zDipoleSpinBox->setEnabled(true);      
+      m_settingsWidget->zDipoleSpinBox->setEnabled(true);
     }
 
     emit changed();
@@ -131,7 +133,7 @@ namespace Avogadro {
     QList<Primitive *> list;
     // Get a list of atoms and calculate the dipole moment
     list = primitives().subList(Primitive::AtomType);
-    
+
     switch(m_dipoleType)
     {
       case 0: // estimated
@@ -150,9 +152,9 @@ namespace Avogadro {
         m_settingsWidget->zDipoleSpinBox->value());
       break;
 
-      default:; // embedded OBGenericData type -- handle 
+      default:; // embedded OBGenericData type -- handle
     }
-    
+
     m_dipole(0) = tempMoment.x();
     m_dipole(1) = tempMoment.y();
     m_dipole(2) = tempMoment.z();

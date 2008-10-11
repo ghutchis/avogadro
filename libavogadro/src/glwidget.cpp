@@ -34,6 +34,9 @@
 #include <avogadro/glpainter.h>
 #include <avogadro/painterdevice.h>
 #include <avogadro/toolgroup.h>
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+#include <avogadro/molecule.h>
 
 //#include "elementcolor.h"
 

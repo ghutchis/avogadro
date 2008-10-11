@@ -24,6 +24,11 @@
 
 #include "cube.h"
 
+#include <avogadro/atom.h>
+#include <avogadro/molecule.h>
+
+#include <vector>
+
 #include <QDebug>
 
 namespace Avogadro {

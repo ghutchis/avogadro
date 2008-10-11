@@ -27,6 +27,10 @@
 #include <QTimer>
 #include <QVector>
 
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+#include <avogadro/residue.h>
+#include <avogadro/molecule.h>
 #include <openbabel/mol.h>
 
 namespace Avogadro {

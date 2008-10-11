@@ -26,6 +26,9 @@
 
 #include <config.h>
 #include <avogadro/primitive.h>
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+#include <avogadro/molecule.h>
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
 #include <avogadro/camera.h>
@@ -55,11 +58,11 @@ namespace Avogadro {
     if(m_settingsWidget)
       m_settingsWidget->deleteLater();
   }
-  
+
   Engine* StickEngine::clone() const
   {
     StickEngine* engine = new StickEngine(parent());
-    
+
     engine->setAlias(alias());
     engine->setEnabled(isEnabled());
 		engine->setRadius(m_radius * SCALING_FACTOR);
@@ -202,7 +205,7 @@ namespace Avogadro {
   }
 
 	// **** Settings Widget ***
-	
+
   void StickEngine::setRadius(int value)
   {
     m_radius = value / SCALING_FACTOR;

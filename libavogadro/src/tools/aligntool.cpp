@@ -26,6 +26,8 @@
 
 #include <avogadro/navigate.h>
 #include <avogadro/primitive.h>
+#include <avogadro/atom.h>
+#include <avogadro/molecule.h>
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
 
@@ -186,7 +188,7 @@ namespace Avogadro {
     if (m_molecule.isNull())
       return;
 
-    QList<const Atom*> neighborList;
+    QList<Atom*> neighborList;
     if (m_numSelectedAtoms)
     {
       // Check the first atom still exists, return if not

@@ -26,6 +26,9 @@
 #include "selectrotatetool.h"
 #include <avogadro/navigate.h>
 #include <avogadro/primitive.h>
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+#include <avogadro/molecule.h>
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
 #include <avogadro/camera.h>
@@ -113,7 +116,7 @@ namespace Avogadro {
     return 0;
   }
 
-  QUndoCommand* SelectRotateTool::mouseRelease(GLWidget *widget, 
+  QUndoCommand* SelectRotateTool::mouseRelease(GLWidget *widget,
 		                                       const QMouseEvent *event)
   {
     // Reset the cursor
@@ -190,8 +193,8 @@ namespace Avogadro {
               // We really want the "connected fragment" since a Molecule can contain
               // multiple user-visible molecule fragments
               // we can use either BFS or DFS interators -- look for the connected fragment
-              OBMol mol = molecule->OBMol();
-              OBMolAtomDFSIter iter(mol, atom->index());
+              OpenBabel::OBMol mol = molecule->OBMol();
+              OpenBabel::OBMolAtomDFSIter iter(mol, atom->index());
               Atom *tmpNeighbor;
               do {
                 tmpNeighbor = molecule->atom(iter->GetIdx());
@@ -199,7 +202,7 @@ namespace Avogadro {
 
                 // we want to find all bonds on this site
                 // (obviously all bonds will be in this fragment)
-                
+
                 FOR_BONDS_OF_ATOM(b, *iter)
                   neighborList.append(molecule->bond(b->GetIdx()));
 

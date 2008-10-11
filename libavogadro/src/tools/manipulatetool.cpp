@@ -26,12 +26,12 @@
 
 #include <avogadro/navigate.h>
 #include <avogadro/primitive.h>
+#include <avogadro/atom.h>
+#include <avogadro/molecule.h>
+
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
 #include <avogadro/camera.h>
-
-#include <openbabel/obiter.h>
-#include <openbabel/mol.h>
 
 #include <QtPlugin>
 
@@ -99,7 +99,7 @@ namespace Avogadro {
     // Currently, there's a Qt/Mac bug -- SizeAllCursor looks like a spreadsheet cursor
 #ifdef Q_WS_MAC
     widget->setCursor(Qt::CrossCursor);
-#else 
+#else
     widget->setCursor(Qt::SizeAllCursor);
 #endif
 
@@ -170,7 +170,7 @@ namespace Avogadro {
       // Currently, there's a Qt/Mac bug -- SizeAllCursor looks like a spreadsheet cursor
 #ifdef Q_WS_MAC
       widget->setCursor(Qt::CrossCursor);
-#else 
+#else
       widget->setCursor(Qt::SizeAllCursor);
 #endif
     }

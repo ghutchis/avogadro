@@ -29,16 +29,16 @@ set(LINK_LIBS "avogadro-lib")
 #install(TARGETS templateextension DESTINATION ${DESTINATION_DIR})
 
 ### gamess
-set(gamessextension_SRCS gamessextension.cpp
-  gamessinputdialog.cpp
-  gamessinputdata.cpp
-  gamessefpmatchdialog.cpp
-)
-qt4_wrap_ui(gamessextension_UIS_H gamessinputdialog.ui gamessefpmatchdialog.ui)
-qt4_automoc(${gamessextension_SRCS})
-add_library(gamessextension MODULE ${gamessextension_SRCS} ${gamessextension_UIS_H})
-target_link_libraries(gamessextension ${LINK_LIBS})
-install(TARGETS gamessextension DESTINATION ${DESTINATION_DIR})
+#set(gamessextension_SRCS gamessextension.cpp
+#  gamessinputdialog.cpp
+#  gamessinputdata.cpp
+#  gamessefpmatchdialog.cpp
+#)
+#qt4_wrap_ui(gamessextension_UIS_H gamessinputdialog.ui gamessefpmatchdialog.ui)
+#qt4_automoc(${gamessextension_SRCS})
+#add_library(gamessextension MODULE ${gamessextension_SRCS} ${gamessextension_UIS_H})
+#target_link_libraries(gamessextension ${LINK_LIBS})
+#install(TARGETS gamessextension DESTINATION ${DESTINATION_DIR})
 
 ### Properties
 set(propextension_SRCS propmodel.cpp propextension.cpp)
@@ -48,15 +48,15 @@ target_link_libraries(propextension ${LINK_LIBS})
 install(TARGETS propextension DESTINATION ${DESTINATION_DIR})
 
 ### Molecular Mechanics force fields
-set(forcefieldextension_SRCS forcefieldextension.cpp forcefielddialog.cpp
-  constraintsdialog.cpp constraintsmodel.cpp conformersearchdialog.cpp)
-qt4_wrap_ui(forcefieldextension_UIS_H forcefielddialog.ui constraintsdialog.ui
-  conformersearchdialog.ui)
-qt4_automoc(${forcefieldextension_SRCS})
-add_library(forcefieldextension MODULE ${forcefieldextension_SRCS}
-  ${forcefieldextension_UIS_H})
-target_link_libraries(forcefieldextension ${LINK_LIBS})
-install(TARGETS forcefieldextension DESTINATION ${DESTINATION_DIR})
+#set(forcefieldextension_SRCS forcefieldextension.cpp forcefielddialog.cpp
+#  constraintsdialog.cpp constraintsmodel.cpp conformersearchdialog.cpp)
+#qt4_wrap_ui(forcefieldextension_UIS_H forcefielddialog.ui constraintsdialog.ui
+#  conformersearchdialog.ui)
+#qt4_automoc(${forcefieldextension_SRCS})
+#add_library(forcefieldextension MODULE ${forcefieldextension_SRCS}
+#  ${forcefieldextension_UIS_H})
+#target_link_libraries(forcefieldextension ${LINK_LIBS})
+#install(TARGETS forcefieldextension DESTINATION ${DESTINATION_DIR})
 
 ### Docking
 ###set(dockingextension_SRCS dockingextension.cpp liganddialog.cpp pocketdialog.cpp)
@@ -133,10 +133,10 @@ target_link_libraries(orbitalextension ${LINK_LIBS})
 install(TARGETS orbitalextension DESTINATION ${DESTINATION_DIR})
 
 ### Gaussian input deck generator
-set(gaussianextension_SRCS gaussianextension.cpp 
+set(gaussianextension_SRCS gaussianextension.cpp
 	gaussianinputdialog.cpp
 	qcheminputdialog.cpp)
-qt4_wrap_ui(gaussianextension_UIS_H 
+qt4_wrap_ui(gaussianextension_UIS_H
 	gaussianinputdialog.ui
 	qcheminputdialog.ui)
 qt4_automoc(${gaussianextension_SRCS})
@@ -160,24 +160,22 @@ if(BOOST_PYTHON_FOUND OR Boost_PYTHON_FOUND)
 	install(FILES ${python_SCRIPTS} DESTINATION share/libavogadro/scripts)
 endif(BOOST_PYTHON_FOUND OR Boost_PYTHON_FOUND)
 
-
-
 ### Animation
-set(animationextension_SRCS animationextension.cpp animationdialog.cpp trajvideomaker.cpp)
-qt4_add_resources(animationextension_RC_SRCS animation.qrc)
-qt4_wrap_ui(animationextension_UIS_H animationdialog.ui)
-qt4_automoc(${animationextension_SRCS})
-add_library(animationextension MODULE ${animationextension_SRCS}
-	${animationextension_UIS_H} ${animationextension_RC_SRCS} )
-target_link_libraries(animationextension ${LINK_LIBS})
-install(TARGETS animationextension DESTINATION ${DESTINATION_DIR})
+#set(animationextension_SRCS animationextension.cpp animationdialog.cpp trajvideomaker.cpp)
+#qt4_add_resources(animationextension_RC_SRCS animation.qrc)
+#qt4_wrap_ui(animationextension_UIS_H animationdialog.ui)
+#qt4_automoc(${animationextension_SRCS})
+#add_library(animationextension MODULE ${animationextension_SRCS}
+#	${animationextension_UIS_H} ${animationextension_RC_SRCS} )
+#target_link_libraries(animationextension ${LINK_LIBS})
+#install(TARGETS animationextension DESTINATION ${DESTINATION_DIR})
 
 ### Lin Morph Animation
-set(linmorphextension_SRCS linmorphextension.cpp linmorphdialog.cpp trajvideomaker.cpp)
-qt4_add_resources(linmorphextension_RC_SRCS linmorph.qrc)
-qt4_wrap_ui(linmorphdialog_UIS_H linmorphdialog.ui)
-qt4_automoc(${linmorphextension_SRCS})
-add_library(linmorphextension MODULE ${linmorphextension_SRCS}
-  ${linmorphdialog_UIS_H} ${linmorphextension_RC_SRCS} ) 
-target_link_libraries(linmorphextension ${LINK_LIBS})
-install(TARGETS linmorphextension DESTINATION ${DESTINATION_DIR})
+#set(linmorphextension_SRCS linmorphextension.cpp linmorphdialog.cpp trajvideomaker.cpp)
+#qt4_add_resources(linmorphextension_RC_SRCS linmorph.qrc)
+#qt4_wrap_ui(linmorphdialog_UIS_H linmorphdialog.ui)
+#qt4_automoc(${linmorphextension_SRCS})
+#add_library(linmorphextension MODULE ${linmorphextension_SRCS}
+#  ${linmorphdialog_UIS_H} ${linmorphextension_RC_SRCS} )
+#target_link_libraries(linmorphextension ${LINK_LIBS})
+#install(TARGETS linmorphextension DESTINATION ${DESTINATION_DIR})

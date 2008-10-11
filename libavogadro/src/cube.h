@@ -31,6 +31,8 @@
 
 namespace Avogadro {
 
+  class Molecule;
+
   class A_EXPORT Cube : public Primitive
   {
   Q_OBJECT

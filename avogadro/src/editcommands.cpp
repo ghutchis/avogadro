@@ -24,6 +24,9 @@
 
 #include "editcommands.h"
 
+#include <avogadro/atom.h>
+
+
 #include <QApplication>
 #include <QClipboard>
 
@@ -33,7 +36,7 @@ namespace Avogadro {
 
   CutCommand::CutCommand(Molecule *molecule, QMimeData *copyData,
                          PrimitiveList selectedList) :
-    m_molecule(molecule), 
+    m_molecule(molecule),
     m_copiedData(copyData), m_selectedList(selectedList)
   {
     m_originalMolecule = *molecule;

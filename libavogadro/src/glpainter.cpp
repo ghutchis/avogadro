@@ -30,6 +30,10 @@
 #include "cylinder.h"
 #include "textrenderer.h"
 
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+#include <avogadro/molecule.h>
+
 #include <QDebug>
 #include <QVarLengthArray>
 #include <Eigen/Geometry>

@@ -25,6 +25,7 @@
 #include <config.h>
 #include <avogadro/camera.h>
 #include <avogadro/glwidget.h>
+#include <avogadro/molecule.h>
 
 using namespace Eigen;
 

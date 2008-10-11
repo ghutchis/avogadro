@@ -26,8 +26,9 @@
 
 #include "drawcommand.h"
 #include <avogadro/primitive.h>
-#include <openbabel/mol.h>
-#include <openbabel/obiter.h>
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+#include <avogadro/molecule.h>
 
 #include <QDebug>
 

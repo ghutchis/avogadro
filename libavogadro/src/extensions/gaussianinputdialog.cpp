@@ -128,7 +128,7 @@ namespace Avogadro
           break;
       }
     }
-    
+
     if (!m_dirty)
       ui.previewText->setText(generateInputDeck());
 
@@ -237,12 +237,12 @@ namespace Avogadro
       default:
         m_theoryType = RHF;
     }
-    
+
     if (m_theoryType == AM1 || m_theoryType == PM3)
       ui.basisCombo->setEnabled(false);
     else
       ui.basisCombo->setEnabled(true);
-    
+
     updatePreviewText();
   }
 
@@ -364,11 +364,11 @@ namespace Avogadro
     if (m_molecule && m_coordType == CARTESIAN)
     {
       QTextStream mol(&buffer);
-      FOR_ATOMS_OF_MOL(atom, m_molecule)
-      {
+      QList<Atom *> atoms = m_molecule->atoms();
+      foreach (Atom *atom, atoms) {
         mol << qSetFieldWidth(3) << left << QString(etab.GetSymbol(atom->GetAtomicNum()))
             << qSetFieldWidth(15) << qSetRealNumberPrecision(5) << forcepoint
-            << fixed << right << atom->GetX() << atom->GetY() << atom->GetZ()
+            << fixed << right << atom->pos().x() << atom->pos.y() << atom->pos.z()
             << qSetFieldWidth(0) << "\n";
       }
       mol << "\n";
@@ -387,16 +387,16 @@ namespace Avogadro
         vic.push_back(new OBInternalCoord);
       CartesianToInternal(vic, (OpenBabel::OBMol&)*m_molecule);
 
-      FOR_ATOMS_OF_MOL(atom, m_molecule)
-      {
-        a = vic[atom->GetIdx()]->_a;
-        b = vic[atom->GetIdx()]->_b;
-        c = vic[atom->GetIdx()]->_c;
+      QList<Atom *> atoms = m_molecule->atoms();
+      foreach (Atom *atom, atoms) {
+        a = vic[atom->index()]->_a;
+        b = vic[atom->index()]->_b;
+        c = vic[atom->index()]->_c;
 
         mol << qSetFieldWidth(3) << left << QString(etab.GetSymbol(atom->GetAtomicNum()))
             << qSetFieldWidth(0);
         if (atom->GetIdx() > 1)
-          mol << " " << a->GetIdx() << " r" << atom->GetIdx();
+          mol << " " << a->index() << " r" << atom->GetIdx();
         if (atom->GetIdx() > 2)
           mol << " " << b->GetIdx() << " a" << atom->GetIdx();
         if (atom->GetIdx() > 3)

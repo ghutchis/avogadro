@@ -44,6 +44,9 @@ class QGLContext;
 
 namespace Avogadro {
 
+  class Atom;
+  class Bond;
+  class Molecule;
   class ToolGroup;
 
   /**

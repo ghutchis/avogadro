@@ -28,6 +28,8 @@
 
 #include <config.h>
 #include <avogadro/primitive.h>
+#include <avogadro/molecule.h>
+#include <avogadro/atom.h>
 #include <avogadro/color.h>
 #include <avogadro/glwidget.h>
 
@@ -54,11 +56,11 @@ namespace Avogadro {
     if(m_settingsWidget)
       m_settingsWidget->deleteLater();
   }
-  
+
   Engine* SphereEngine::clone() const
   {
     SphereEngine* engine = new SphereEngine(parent());
-    
+
     engine->setAlias(alias());
     engine->m_alpha = m_alpha;
     engine->setEnabled(isEnabled());

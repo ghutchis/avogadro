@@ -26,6 +26,7 @@
 
 #include <config.h>
 #include <avogadro/primitive.h>
+#include <avogadro/atom.h>
 #include <QtPlugin>
 
 #include <openbabel/mol.h>

@@ -24,6 +24,9 @@
 
 #include "povpainter.h"
 
+#include <avogadro/atom.h>
+#include <avogadro/bond.h>
+
 #include <QFile>
 #include <QDebug>
 #include <Eigen/Geometry>
