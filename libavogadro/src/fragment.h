@@ -27,7 +27,7 @@
 
 #include <avogadro/primitive.h>
 
-#include <vector>
+#include <QList>
 
 namespace Avogadro {
 
@@ -67,10 +67,17 @@ namespace Avogadro {
        */
       inline void setName(QString name) { m_name = name; }
 
+      void addAtom(unsigned long int id);
+      void removeAtom(unsigned long int id);
+      QList<unsigned long int> atoms();
+      void addBond(unsigned long int id);
+      void removeBond(unsigned long int id);
+      QList<unsigned long int> bonds();
+
     private:
       QString m_name;
-      std::vector<unsigned long int> m_atoms;
-      std::vector<unsigned long int> m_bonds;
+      QList<unsigned long int> m_atoms;
+      QList<unsigned long int> m_bonds;
       Q_DECLARE_PRIVATE(Fragment)
   };
 

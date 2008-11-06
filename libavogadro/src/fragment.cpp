@@ -32,6 +32,46 @@ namespace Avogadro {
   Fragment::~Fragment()
   { }
 
+  void Fragment::addAtom(unsigned long int id)
+  {
+    if (!m_atoms.contains(id)) {
+      m_atoms.push_back(id);
+    }
+  }
+
+  void Fragment::removeAtom(unsigned long int id)
+  {
+    int index = m_atoms.indexOf(id);
+    if (index > -1) {
+      m_atoms.removeAt(index);
+    }
+  }
+
+  QList<unsigned long int> Fragment::atoms()
+  {
+    return m_atoms;
+  }
+
+  void Fragment::addBond(unsigned long int id)
+  {
+    if (!m_bonds.contains(id)) {
+      m_bonds.push_back(id);
+    }
+  }
+
+  void Fragment::removeBond(unsigned long int id)
+  {
+    int index = m_bonds.indexOf(id);
+    if (index > -1) {
+      m_bonds.removeAt(index);
+    }
+  }
+
+  QList<unsigned long int> Fragment::bonds()
+  {
+    return m_bonds;
+  }
+
 } // End namespace Avogadro
 
 #include "fragment.moc"

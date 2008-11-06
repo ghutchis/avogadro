@@ -80,12 +80,12 @@ install(TARGETS stickengine DESTINATION ${DESTINATION_DIR})
 #install(TARGETS ribbonengine DESTINATION ${DESTINATION_DIR})
 
 # Ring engine - display cyclic rings
-#set(ringengine_SRCS ringengine.cpp)
-#qt4_wrap_ui(ringengine_UIS ringsettingswidget.ui)
-#qt4_automoc(${ringengine_SRCS})
-#add_library(ringengine MODULE ${ringengine_SRCS} ${ringengine_UIS} )
-#target_link_libraries(ringengine ${LINK_LIBS})
-#install(TARGETS ringengine DESTINATION ${DESTINATION_DIR})
+set(ringengine_SRCS ringengine.cpp)
+qt4_wrap_ui(ringengine_UIS ringsettingswidget.ui)
+qt4_automoc(${ringengine_SRCS})
+add_library(ringengine MODULE ${ringengine_SRCS} ${ringengine_UIS} )
+target_link_libraries(ringengine ${LINK_LIBS})
+install(TARGETS ringengine DESTINATION ${DESTINATION_DIR})
 
 # Polygon engine
 #set(polygonengine_SRCS polygonengine.cpp)

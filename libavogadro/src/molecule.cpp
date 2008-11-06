@@ -57,11 +57,15 @@
       std::vector<Atom *>           atoms;
       std::vector<Bond *>           bonds;
       std::vector<Cube *>           cubes;
+      std::vector<Fragment *>       residues;
+      std::vector<Fragment *>       rings;
 
       // Used to store the index based list (not unique ids)
       QList<Atom *>                 atomList;
       QList<Bond *>                 bondList;
       QList<Cube *>                 cubeList;
+      QList<Fragment *>             residueList;
+      QList<Fragment *>             ringList;
 
       // Our OpenBabel OBMol object
       OpenBabel::OBMol *            obmol;
@@ -333,8 +337,8 @@
       d->cubes[cube->id()] = 0;
       // 0 based arrays stored/shown to user
       int index = cube->index();
-      d->bondList.removeAt(index);
-      for (int i = index; i < d->bondList.size(); ++i) {
+      d->cubeList.removeAt(index);
+      for (int i = index; i < d->cubeList.size(); ++i) {
         d->cubeList[i]->setIndex(i);
       }
 
@@ -350,6 +354,50 @@
     Q_D(Molecule);
     if (id < d->cubes.size())
       deleteCube(d->cubes[id]);
+  }
+
+  Fragment * Molecule::newRing()
+  {
+    Q_D(Molecule);
+
+    Fragment *ring = new Fragment(this);
+
+    d->rings.push_back(ring);
+    ring->setId(d->rings.size()-1);
+
+    d->ringList.push_back(ring);
+    ring->setIndex(d->ringList.size()-1);
+
+    // now that the id is correct, emit the signal
+    connect(ring, SIGNAL(updated()), this, SLOT(updatePrimitive()));
+    emit primitiveAdded(ring);
+    return(ring);
+  }
+
+  void Molecule::deleteRing(Fragment *ring)
+  {
+    Q_D(Molecule);
+    if(ring) {
+      d->rings[ring->id()] = 0;
+      // 0 based arrays stored/shown to user
+      int index = ring->index();
+      d->ringList.removeAt(index);
+      for (int i = index; i < d->ringList.size(); ++i) {
+        d->ringList[i]->setIndex(i);
+      }
+
+      ring->deleteLater();
+      disconnect(ring, SIGNAL(updated()), this, SLOT(updatePrimitive()));
+      emit primitiveRemoved(ring);
+      qDebug() << "Ring" << ring->id() << ring->index() << "deleted";
+    }
+  }
+
+  void Molecule::deleteRing(unsigned long int id)
+  {
+    Q_D(Molecule);
+    if (id < d->rings.size())
+      deleteRing(d->rings[id]);
   }
 
   void Molecule::addHydrogens(Atom *atom)
@@ -467,6 +515,18 @@
     return d->cubeList;
   }
 
+  QList<Fragment *> Molecule::residues() const
+  {
+    Q_D(const Molecule);
+    return d->residueList;
+  }
+
+  QList<Fragment *> Molecule::rings() const
+  {
+    Q_D(const Molecule);
+    return d->ringList;
+  }
+
   OpenBabel::OBMol Molecule::OBMol()
   {
     Q_D(Molecule);
@@ -495,6 +555,8 @@
     Q_D(Molecule);
     d->obmol = obmol;
     // Copy all the parts of the OBMol to our Molecule
+
+    // Begin by copying all of the atoms
     std::vector<OpenBabel::OBNodeBase*>::iterator i;
     for (OpenBabel::OBAtom *obatom = static_cast<OpenBabel::OBAtom *>(obmol->BeginAtom(i));
           obatom; obatom = static_cast<OpenBabel::OBAtom *>(obmol->NextAtom(i))) {
@@ -504,6 +566,7 @@
 
       qDebug() << "New atom:" << atom->index() << atom->pos().x() << atom->pos().y() << atom->pos().z() << atom->atomicNumber();
     }
+
     // Now bonds, we use the indices of the atoms to get the bonding right
     std::vector<OpenBabel::OBEdgeBase*>::iterator j;
     for (OpenBabel::OBBond *obbond = static_cast<OpenBabel::OBBond*>(obmol->BeginBond(j));
@@ -517,6 +580,7 @@
       atom(obbond->GetBeginAtom()->GetIdx()-1)->addBond(bond);
       atom(obbond->GetEndAtom()->GetIdx()-1)->addBond(bond);
     }
+
     // Now for the volumetric data
     std::vector<OpenBabel::OBGenericData*> data = obmol->GetAllData(OpenBabel::OBGenericDataType::GridData);
     for (unsigned int i = 0; i < data.size(); ++i) {
@@ -535,6 +599,17 @@
       cube->setName(name);
       qDebug() << "Cube" << i << "added.";
     }
+
+    // Copy the rings across now
+    std::vector<OpenBabel::OBRing *> rings;
+    rings = obmol->GetSSSR();
+    foreach(OpenBabel::OBRing *r, rings) {
+      Fragment *ring = newRing();
+      foreach(int index, r->_path) {
+        ring->addAtom(atom(index-1)->id());
+      }
+    }
+
     return true;
   }
 

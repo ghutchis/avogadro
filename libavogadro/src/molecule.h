@@ -142,6 +142,10 @@ namespace Avogadro {
       void deleteCube(Cube *cube);
       void deleteCube(unsigned long int id);
 
+      Fragment *newRing();
+      void deleteRing(Fragment *ring);
+      void deleteRing(unsigned long int id);
+
       /**
        * @return The total number of atoms in the molecule.
        */
@@ -199,6 +203,16 @@ namespace Avogadro {
        * @return a QList of all cubes in the molecule.
        */
       QList<Cube *> cubes() const;
+
+      /**
+       * @return a QList of all residues in the molecule.
+       */
+      QList<Fragment *> residues() const;
+
+      /**
+       * @return a QList of all rings in the molecule.
+       */
+      QList<Fragment *> rings() const;
 
       /**
        * Delete all elements of the molecule.
