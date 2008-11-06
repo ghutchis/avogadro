@@ -127,8 +127,8 @@ namespace Avogadro
     foreach(const Primitive *p, list ) {
       const Bond *b = static_cast<const Bond *>( p );
 
-      Atom* atom1 = pd->molecule()->getAtomById(b->beginAtomId());
-      Atom* atom2 = pd->molecule()->getAtomById(b->endAtomId());
+      Atom* atom1 = pd->molecule()->atomById(b->beginAtomId());
+      Atom* atom2 = pd->molecule()->atomById(b->endAtomId());
       if (!atom1 || !atom2) {
         qDebug() << "Invalid bond atom IDs" << b->beginAtomId() << atom1
                  << b->endAtomId() << atom2 << "Bond" << b->id();
@@ -203,8 +203,8 @@ namespace Avogadro
 
       // Render the selection highlight
       if ( pd->isSelected( b ) ) {
-        Atom* atom1 = pd->molecule()->getAtomById(b->beginAtomId());
-        Atom* atom2 = pd->molecule()->getAtomById(b->endAtomId());
+        Atom* atom1 = pd->molecule()->atomById(b->beginAtomId());
+        Atom* atom2 = pd->molecule()->atomById(b->endAtomId());
         Vector3d v1(atom1->pos());
         Vector3d v2(atom2->pos());
 
@@ -273,8 +273,8 @@ namespace Avogadro
     {
       const Bond *b = static_cast<const Bond *>(p);
 
-      Atom* atom1 = pd->molecule()->getAtomById(b->beginAtomId());
-      Atom* atom2 = pd->molecule()->getAtomById(b->endAtomId());
+      Atom* atom1 = pd->molecule()->atomById(b->beginAtomId());
+      Atom* atom2 = pd->molecule()->atomById(b->endAtomId());
       Vector3d v1(atom1->pos());
       Vector3d v2(atom2->pos());
       Vector3d d = v2 - v1;

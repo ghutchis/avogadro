@@ -134,10 +134,6 @@ namespace Avogadro {
       void deleteBond(Bond *bond);
       void deleteBond(unsigned long int id);
 
-      Atom *getAtomById(unsigned long id) const;
-
-      Bond *getBondById(unsigned long id) const;
-
       void addHydrogens(Atom *atom = 0);
       void deleteHydrogens(Atom *atom);
       void deleteHydrogens();
@@ -167,11 +163,15 @@ namespace Avogadro {
        */
       Atom* atom(int index);
 
+      Atom *atomById(unsigned long id) const;
+
       /**
        * @return the bond at the supplied index.
        * @note Replaces GetBond.
        */
       Bond* bond(int index);
+
+      Bond *bondById(unsigned long id) const;
 
       /**
        * @return The bond between the two supplied atom ids if one exists,

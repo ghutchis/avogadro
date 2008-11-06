@@ -1605,13 +1605,13 @@ namespace Avogadro {
     PrimitiveList list;
 
     for (int j = 0; j < d->namedSelections.at(index).second.first.size(); ++j) {
-      Atom *atom = d->molecule->getAtomById(d->namedSelections.at(index).second.first.at(j));
+      Atom *atom = d->molecule->atomById(d->namedSelections.at(index).second.first.at(j));
       if (atom)
         list.append(atom);
     }
 
     for (int j = 0; j < d->namedSelections.at(index).second.second.size(); ++j) {
-      Bond *bond = d->molecule->getBondById(d->namedSelections.at(index).second.second.at(j));
+      Bond *bond = d->molecule->bondById(d->namedSelections.at(index).second.second.at(j));
       if (bond)
         list.append(bond);
     }

@@ -186,7 +186,7 @@
       // When deleting an atom this also implicitly deletes any bonds to the atom
       QList<unsigned long int> bonds = atom->bonds();
       foreach (unsigned long int bond, bonds)
-        deleteBond(getBondById(bond));
+        deleteBond(bondById(bond));
 
       d->atoms[atom->id()] = 0;
       // 1 based arrays stored/shown to user
@@ -208,20 +208,20 @@
       deleteAtom(d->atoms[id]);
   }
 
-  Atom *Molecule::getAtomById(unsigned long id) const
-  {
-    Q_D(const Molecule);
-    if(id < d->atoms.size())
-      return d->atoms[id];
-    else
-      return 0;
-  }
-
   Atom *Molecule::atom(int index)
   {
     Q_D(Molecule);
     if (index >= 0 && index < d->atomList.size())
       return d->atomList[index];
+    else
+      return 0;
+  }
+
+  Atom *Molecule::atomById(unsigned long id) const
+  {
+    Q_D(const Molecule);
+    if(id < d->atoms.size())
+      return d->atoms[id];
     else
       return 0;
   }
@@ -272,8 +272,8 @@
       for (int i = index; i < d->bondList.size(); ++i)
         d->bondList[i]->setIndex(i);
       // Also delete the bond from the attached atoms
-      (getAtomById(bond->beginAtomId()))->deleteBond(bond);
-      (getAtomById(bond->endAtomId()))->deleteBond(bond);
+      (atomById(bond->beginAtomId()))->deleteBond(bond);
+      (atomById(bond->endAtomId()))->deleteBond(bond);
 
       bond->deleteLater();
       disconnect(bond, SIGNAL(updated()), this, SLOT(updatePrimitive()));
@@ -289,16 +289,6 @@
       deleteBond(d->bonds[id]);
   }
 
-  Bond *Molecule::getBondById(unsigned long id) const
-  {
-    Q_D(const Molecule);
-    if(id < d->bonds.size())
-    {
-      return d->bonds[id];
-    }
-    return 0;
-  }
-
   Bond *Molecule::bond(int index)
   {
     Q_D(Molecule);
@@ -306,6 +296,16 @@
       return d->bondList[index];
     else
       return 0;
+  }
+
+  Bond *Molecule::bondById(unsigned long id) const
+  {
+    Q_D(const Molecule);
+    if(id < d->bonds.size())
+    {
+      return d->bonds[id];
+    }
+    return 0;
   }
 
   Cube *Molecule::newCube()
@@ -383,7 +383,7 @@
     // Delete any connected hydrogen atoms
     QList<unsigned long int> neighbors = atom->neighbors();
     foreach (unsigned long int a, neighbors)
-      if (getAtomById(a)->isHydrogen())
+      if (atomById(a)->isHydrogen())
         deleteAtom(a);
   }
 
@@ -479,8 +479,8 @@
       *a = obatom;
     }
     foreach (Bond *bond, d->bondList) {
-      obmol.AddBond(getAtomById(bond->beginAtomId())->index() + 1,
-                    getAtomById(bond->endAtomId())->index() + 1, bond->order());
+      obmol.AddBond(atomById(bond->beginAtomId())->index() + 1,
+                    atomById(bond->endAtomId())->index() + 1, bond->order());
     }
     obmol.EndModify();
 
@@ -642,8 +642,8 @@
     foreach (Bond *b, e->bondList) {
       Bond *bond = newBond();
       *bond = *b;
-      bond->setBegin(getAtomById(map.at(other.getAtomById(b->beginAtomId())->index())));
-      bond->setEnd(getAtomById(map.at(other.getAtomById(b->endAtomId())->index())));
+      bond->setBegin(atomById(map.at(other.atomById(b->beginAtomId())->index())));
+      bond->setEnd(atomById(map.at(other.atomById(b->endAtomId())->index())));
       emit primitiveAdded(bond);
     }
     return *this;

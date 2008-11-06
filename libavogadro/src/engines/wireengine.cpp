@@ -143,7 +143,7 @@ namespace Avogadro {
 
   bool WireEngine::renderOpaque(PainterDevice *pd, const Bond *b)
   {
-    const Atom* atom1 = pd->molecule()->getAtomById(b->beginAtomId());
+    const Atom* atom1 = pd->molecule()->atomById(b->beginAtomId());
     const Vector3d & v1 = atom1->pos();
     const Camera *camera = pd->camera();
 
@@ -155,7 +155,7 @@ namespace Avogadro {
     double dot = transformedEnd1.z() / transformedEnd1.norm();
     if(dot > -0.8) return true; // i.e., don't bother rendering
 
-    const Atom* atom2 = pd->molecule()->getAtomById(b->endAtomId());
+    const Atom* atom2 = pd->molecule()->atomById(b->endAtomId());
     const Vector3d & v2 = atom2->pos();
     Vector3d d = v2 - v1;
     d.normalize(); // compute the "transition point" between the two atoms

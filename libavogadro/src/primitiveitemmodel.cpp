@@ -267,8 +267,8 @@ namespace Avogadro {
         }
         else if(type == Primitive::BondType){
           Bond *bond = (Bond*)primitive;
-          const Atom *beginAtom = d->molecule->getAtomById(bond->beginAtomId());
-          const Atom *endAtom = d->molecule->getAtomById(bond->endAtomId());
+          const Atom *beginAtom = d->molecule->atomById(bond->beginAtomId());
+          const Atom *endAtom = d->molecule->atomById(bond->endAtomId());
           str = tr("Bond") + ' ' + QString::number(bond->index()) + " (";
           if(beginAtom)
             str += QString::number(beginAtom->index());

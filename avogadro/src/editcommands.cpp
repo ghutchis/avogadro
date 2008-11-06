@@ -56,7 +56,7 @@ namespace Avogadro {
       // Make sure any selection is an atom
       // FIXME: Do we need to do bonds or other primitives?
       foreach(unsigned long atomid, m_selectedList.subList(Primitive::AtomType)) {
-        Atom *atom = m_molecule->getAtomById(atomid);
+        Atom *atom = m_molecule->atomById(atomid);
         if(atom)
         {
           m_molecule->deleteAtom(atom);
@@ -129,7 +129,7 @@ namespace Avogadro {
       // Make sure any selection is an atom
       // FIXME: Do we need to do bonds or other primitives?
       foreach(unsigned long atomid, m_selectedList.subList(Primitive::AtomType)) {
-        Atom *atom = m_molecule->getAtomById(atomid);
+        Atom *atom = m_molecule->atomById(atomid);
         if(atom)
         {
           m_molecule->deleteAtom(atom);

@@ -136,8 +136,8 @@ namespace Avogadro {
 
           // do not try to change X-H bond order when adjust hydrogens is on
           if(m_addHydrogens) {
-            if (molecule->getAtomById(bond->beginAtomId())->isHydrogen() ||
-                molecule->getAtomById(bond->endAtomId())->isHydrogen())
+            if (molecule->atomById(bond->beginAtomId())->isHydrogen() ||
+                molecule->atomById(bond->endAtomId())->isHydrogen())
               return 0;
           }
 
@@ -274,7 +274,7 @@ namespace Avogadro {
                 m_endAtomAdded = false;
                 m_endAtom = 0;
               } else {
-                Atom *oldAtom = molecule->getAtomById(m_bond->endAtomId());
+                Atom *oldAtom = molecule->atomById(m_bond->endAtomId());
                 oldAtom->deleteBond(m_bond);
               }
               m_bond->setEnd(existingAtom);
@@ -326,7 +326,7 @@ namespace Avogadro {
             m_bond = newBond(molecule, m_beginAtom, m_endAtom);
           }
           else {
-            Atom *oldAtom = molecule->getAtomById(m_bond->endAtomId());
+            Atom *oldAtom = molecule->atomById(m_bond->endAtomId());
             oldAtom->deleteBond(m_bond);
             m_bond->setEnd(m_endAtom);
             m_endAtom->addBond(m_bond);
@@ -418,8 +418,8 @@ namespace Avogadro {
         if (m_prevBond->order() != m_prevBondOrder) {
           // do not try to change X-H bond order when adjust hydrogens is on
           if(m_addHydrogens) {
-            if (molecule->getAtomById(m_prevBond->beginAtomId())->isHydrogen() ||
-                molecule->getAtomById(m_prevBond->endAtomId())->isHydrogen()) {
+            if (molecule->atomById(m_prevBond->beginAtomId())->isHydrogen() ||
+                molecule->atomById(m_prevBond->endAtomId())->isHydrogen()) {
               m_prevBond->setOrder(1); // restore
               return 0;
             }
@@ -480,8 +480,8 @@ namespace Avogadro {
           // don't delete ?-H bonds when adjust hydrogens is on
           Bond *bond = widget->molecule()->bond(m_hits[0].name());
           if (m_addHydrogens)
-            if (molecule->getAtomById(bond->beginAtomId())->isHydrogen() ||
-                molecule->getAtomById(bond->endAtomId())->isHydrogen())
+            if (molecule->atomById(bond->beginAtomId())->isHydrogen() ||
+                molecule->atomById(bond->endAtomId())->isHydrogen())
               return undo;
           undo = new DeleteBondDrawCommand(widget->molecule(), m_hits[0].name(),
                                            m_addHydrogens);
