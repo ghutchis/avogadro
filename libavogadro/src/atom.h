@@ -77,23 +77,6 @@ namespace Avogadro {
       }
 
       /**
-       * @return The index of the atom.
-       * @note Replaces GetIdx().
-       */
-      inline unsigned int index() const
-      {
-        return m_index;
-      }
-
-      /**
-       * Sets the index of the atom, should generally only be called by Molecule.
-       */
-      inline void setIndex(unsigned int index)
-      {
-        m_index = index;
-      }
-
-      /**
        * @return Atomic number of the atom.
        * @note Replaces GetAtomicNum()
        */
@@ -157,7 +140,6 @@ namespace Avogadro {
 
     private:
       /* shared d_ptr with Primitive */
-      unsigned int m_index;
       Eigen::Vector3d m_pos;
       int m_atomicNum;
       QList<unsigned long int> m_bonds, m_neighbors;

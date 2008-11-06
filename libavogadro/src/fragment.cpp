@@ -1,7 +1,6 @@
 /**********************************************************************
-  Bond - Bond class derived from the base Primitive class
+  Fragment - Fragment class derived from the base Primitive class
 
-  Copyright (C) 2007 Donald Ephraim Curtis
   Copyright (C) 2008 Marcus D. Hanwell
 
   This file is part of the Avogadro molecular editor project.
@@ -23,36 +22,16 @@
   02110-1301, USA.
  **********************************************************************/
 
- #include "bond.h"
+#include "fragment.h"
 
- #include <openbabel/mol.h>
+namespace Avogadro {
 
- namespace Avogadro{
+  Fragment::Fragment(QObject *parent) : Primitive(FragmentType, parent)
+  { }
 
-  class BondPrivate {
-    public:
-      BondPrivate() {}
-  };
-
-  Bond::Bond(QObject *parent) : Primitive(BondType, parent), m_beginAtomId(0),
-    m_endAtomId(0), m_order(1)
-  {
-  }
-
-  bool Bond::setOBBond(OpenBabel::OBBond *obbond)
-  {
-    m_order = obbond->GetBondOrder();
-    return true;
-  }
-
-  Bond& Bond::operator=(const Bond& other)
-  {
-    m_beginAtomId = other.m_beginAtomId;
-    m_endAtomId = other.m_endAtomId;
-    m_order = other.m_order;
-    return *this;
-  }
+  Fragment::~Fragment()
+  { }
 
 } // End namespace Avogadro
 
-#include "bond.moc"
+#include "fragment.moc"

@@ -66,8 +66,12 @@ namespace Avogadro {
         ResidueType,
         /// Chain Primitive (i.e., a set of residues)
         ChainType,
+        /// Fragment Primitve
+        FragmentType,
         /// Surface Primitive
         SurfaceType,
+        /// Cube Primitive
+        CubeType,
         /// Plane Primitive
         PlaneType,
         /// Grid Primitive
@@ -125,8 +129,26 @@ namespace Avogadro {
 
       QReadWriteLock *lock();
 
+      /**
+       * Set the id of the primitive, used to uniquely indentify the primitive.
+       */
       void setId(unsigned long m_id);
+
+      /**
+       * @return the unique id of the primitive.
+       */
       unsigned long id() const;
+
+      /**
+       * Set the index of the primitive, starting at zero.
+       */
+      void setIndex(unsigned long m_index);
+
+      /**
+       * @return the index of the primitive.
+       * @note Replaces GetIdx().
+       */
+      unsigned long index() const;
 
     Q_SIGNALS:
       /**
@@ -143,6 +165,7 @@ namespace Avogadro {
       Q_DECLARE_PRIVATE(Primitive)
       enum Primitive::Type m_type;
       unsigned long m_id;
+      unsigned long m_index;
       QReadWriteLock *m_lock;
 
   };

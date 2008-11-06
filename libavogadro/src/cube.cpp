@@ -33,8 +33,9 @@
 
 namespace Avogadro {
 
-  Cube::Cube() : m_data(0), m_min(0.0, 0.0, 0.0), m_max(0.0, 0.0, 0.0),
-    m_spacing(0.0, 0.0, 0.0), m_points(0, 0, 0)
+  Cube::Cube(QObject *parent) : Primitive(CubeType, parent), m_data(0),
+    m_min(0.0, 0.0, 0.0), m_max(0.0, 0.0, 0.0), m_spacing(0.0, 0.0, 0.0),
+    m_points(0, 0, 0)
   {
   }
 
@@ -106,11 +107,12 @@ namespace Avogadro {
       qDebug() << "Loaded in cube data" << m_data.size();
       return true;
     }
-    else
+    else {
       return false;
+    }
   }
 
-  unsigned int Cube::index(const Eigen::Vector3d &pos) const
+  unsigned int Cube::closestIndex(const Eigen::Vector3d &pos) const
   {
     int i, j, k;
     // Calculate how many steps each coordinate is along its axis

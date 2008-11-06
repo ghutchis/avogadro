@@ -27,6 +27,7 @@
 #include "atom.h"
 #include "bond.h"
 #include "cube.h"
+#include "fragment.h"
 
 #include <Eigen/Regression>
 #include <Eigen/Geometry>
@@ -143,7 +144,7 @@
   Atom *Molecule::newAtom()
   {
     Q_D(Molecule);
-    Atom *atom = new Atom;
+    Atom *atom = new Atom(this);
     d->atoms.push_back(atom);
     d->atomList.push_back(atom);
     atom->setId(d->atoms.size()-1);
@@ -160,7 +161,7 @@
 
     // we have to bypass the emit given by CreateAtom()
     d->autoId = false;
-    Atom *atom = new Atom;
+    Atom *atom = new Atom(this);
     d->autoId = true;
 
     if(id >= d->atoms.size())
@@ -228,7 +229,7 @@
   Bond *Molecule::newBond()
   {
     Q_D(Molecule);
-    Bond *bond = new Bond;
+    Bond *bond = new Bond(this);
     d->bonds.push_back(bond);
     d->bondList.push_back(bond);
     bond->setId(d->bonds.size()-1);
@@ -243,7 +244,7 @@
     Q_D(Molecule);
 
     d->autoId = false;
-    Bond *bond = new Bond;
+    Bond *bond = new Bond(this);
     d->autoId = true;
 
     if(id >= d->bonds.size())
@@ -311,18 +312,44 @@
   {
     Q_D(Molecule);
 
-    Cube *cube = new Cube;
+    Cube *cube = new Cube(this);
 
     d->cubes.push_back(cube);
     cube->setId(d->cubes.size()-1);
 
     d->cubeList.push_back(cube);
-//    cube->setIndex(d->cubeList.size()-1);
+    cube->setIndex(d->cubeList.size()-1);
 
     // now that the id is correct, emit the signal
     connect(cube, SIGNAL(updated()), this, SLOT(updatePrimitive()));
     emit primitiveAdded(cube);
     return(cube);
+  }
+
+  void Molecule::deleteCube(Cube *cube)
+  {
+    Q_D(Molecule);
+    if(cube) {
+      d->cubes[cube->id()] = 0;
+      // 0 based arrays stored/shown to user
+      int index = cube->index();
+      d->bondList.removeAt(index);
+      for (int i = index; i < d->bondList.size(); ++i) {
+        d->cubeList[i]->setIndex(i);
+      }
+
+      cube->deleteLater();
+      disconnect(cube, SIGNAL(updated()), this, SLOT(updatePrimitive()));
+      emit primitiveRemoved(cube);
+      qDebug() << "Cube" << cube->id() << cube->index() << "deleted";
+    }
+  }
+
+  void Molecule::deleteCube(unsigned long int id)
+  {
+    Q_D(Molecule);
+    if (id < d->cubes.size())
+      deleteCube(d->cubes[id]);
   }
 
   void Molecule::addHydrogens(Atom *atom)
@@ -544,6 +571,7 @@
     Q_D(Molecule);
     d->atoms.resize(0);
     d->bonds.resize(0);
+    d->cubes.resize(0);
     foreach (Atom *atom, d->atomList) {
       atom->deleteLater();
       emit primitiveRemoved(atom);
@@ -554,6 +582,11 @@
       emit primitiveRemoved(bond);
     }
     d->bondList.clear();
+    foreach (Cube *cube, d->cubeList) {
+      cube->deleteLater();
+      emit primitiveRemoved(cube);
+    }
+    d->cubeList.clear();
   }
 
   Molecule &Molecule::operator=(const Molecule& other)

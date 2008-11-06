@@ -83,6 +83,16 @@ namespace Avogadro {
     return m_id;
   }
 
+  void Primitive::setIndex(unsigned long index)
+  {
+    m_index = index;
+  }
+
+  unsigned long Primitive::index() const
+  {
+    return m_index;
+  }
+
 }
 
 #include "primitive.moc"

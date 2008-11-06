@@ -36,14 +36,11 @@ namespace OpenBabel {
 namespace Avogadro {
 
   /**
-   * @class Bond primitive.h <avogadro/primitive.h>
+   * @class Bond bond.h <avogadro/bond.h>
    * @brief Bond Class
-   * @author Donald Ephraim Curtis
+   * @author Marcus D. Hanwell
    *
-   * The Bond class is a Primitive subclass that provides a wrapper around
-   * OpenBabel::OBBond.  This class is provided to give more control of
-   * the OpenBabel::OBBond class through slots/signals provided by the
-   * Primitive superclass.
+   * The Bond class is a Primitive subclass that provides a bond object.
    */
   class Atom;
   class BondPrivate;
@@ -59,30 +56,50 @@ namespace Avogadro {
        */
       Bond(QObject *parent=0);
 
-      inline unsigned int index() const // replaces GetIdx
-      {
-        return m_index;
-      }
-      inline void setIndex(unsigned int index)
-      {
-        m_index = index;
-      }
-      /// FIXME: More functions that need fixing up!
+      /**
+       * @return the unique ID of the first atom in the bond.
+       */
       inline unsigned long int beginAtomId() const { return m_beginAtomId; }
+
+      /**
+       * Set the unique ID of the first atom in the bond.
+       */
       void setBegin(Atom* atom) { m_beginAtomId = atom->id(); }
+
+      /**
+       * @return the unique ID of the second atom in the bond.
+       */
       inline unsigned long int endAtomId() const { return m_endAtomId; }
+
+      /**
+       * Set the unique ID of the second atom in the bond.
+       */
       void setEnd(Atom* atom) { m_endAtomId = atom->id(); }
-      /// The order of the bond - 1 = single, 2 = double etc
+
+      /**
+       * @return the order of the bond - 1 = single, 2 = double etc.
+       */
       inline int order() const { return m_order; }
+
+      /**
+       * Set the order of the bond.
+       */
       inline void setOrder(int order) { m_order = order; }
+
+      /**
+       * @return the length of the bond.
+       * FIXME Not yet implemented - is it used anywhere?
+       */
       inline double length() const { return 0.0; }
 
+      /**
+       * Copy an OpenBabel::OBBond's data to create a similar bond.
+       */
       bool setOBBond(OpenBabel::OBBond *obbond);
 
       Bond& operator=(const Bond& other);
 
     private:
-      unsigned int m_index;
       unsigned long int m_beginAtomId, m_endAtomId;
       int m_order;
       /* shared d_ptr with Primitive */

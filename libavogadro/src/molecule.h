@@ -41,17 +41,15 @@ namespace Avogadro {
   class Bond;
   class Residue;
   class Cube;
+  class Fragment;
 
   /**
-   * @class Molecule primitive.h <avogadro/primitive.h>
+   * @class Molecule molecule.h <avogadro/molecule.h>
    * @brief Molecule Class
-   * @author Donald Ephraim Curtis
+   * @author Marcus D. Hanwell
    *
-   * The Molecule class implements the OpenBabel::OBMol virtual functions
-   * in order to not only use our primitive objects but also to provide signals
-   * based on internal OpenBabel actions.  In terms of a Model-View architecture,
-   * this is our model class and is used by our various views to hold
-   * all required data.
+   * The Molecule class implements the core molecule data that is the cetral
+   * model holding all data by our various views. 
    */
   class MoleculePrivate;
   class A_EXPORT Molecule : public Primitive
@@ -146,26 +144,66 @@ namespace Avogadro {
 
       Cube *newCube();
       void deleteCube(Cube *cube);
+      void deleteCube(unsigned long int id);
 
-      /// FIXME These are new functions that need fleshing out to work properly
+      /**
+       * @return The total number of atoms in the molecule.
+       */
       unsigned int numAtoms() const;
+
+      /**
+       * @return The total number of bonds in the molecule.
+       */
       unsigned int numBonds() const;
+
+      /**
+       * @return The total number of residues in the molecule.
+       */
       unsigned int numResidues() const;
 
-      Atom* atom(int index); // Replaces GetAtom
-      Bond* bond(int index); // Replaces GetBond
+      /**
+       * @return the atom at the supplied index.
+       * @note Replaces GetAtom.
+       */
+      Atom* atom(int index);
 
+      /**
+       * @return the bond at the supplied index.
+       * @note Replaces GetBond.
+       */
+      Bond* bond(int index);
+
+      /**
+       * @return The bond between the two supplied atom ids if one exists,
+       * otherwise 0 is returned.
+       */
       Bond* bond(unsigned long int id1, unsigned long int id2);
+
+      /**
+       * @return The bond between the two supplied atom pointers if one exists,
+       * otherwise 0 is returned.
+       */
       Bond* bond(const Atom*, const Atom*);
 
+      /**
+       * @return a QList of all atoms in the molecule.
+       */
       QList<Atom *> atoms() const;
+
+      /**
+       * @return a QList of all bonds in the molecule.
+       */
       QList<Bond *> bonds() const;
+
+      /**
+       * @return a QList of all cubes in the molecule.
+       */
       QList<Cube *> cubes() const;
 
-      /** FIXME Implement me!
-       * Delete all elements of the molecule
+      /**
+       * Delete all elements of the molecule.
        */
-       void clear();
+      void clear();
 
       /**
        * Get access to an OpenBabel atom, this is a copy of the internal data
@@ -173,6 +211,11 @@ namespace Avogadro {
        * any changes you make to this object.
        */
       OpenBabel::OBMol OBMol();
+
+      /**
+       * Copy as much data as possible from the supplied OpenBabel OBMol to the
+       * Avogadro Molecule object.
+       */
       bool setOBMol(OpenBabel::OBMol *obmol);
 
       const Eigen::Vector3d & center() const;

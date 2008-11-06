@@ -33,12 +33,13 @@ namespace Avogadro {
 
   class Molecule;
 
+  class CubePrivate;
   class A_EXPORT Cube : public Primitive
   {
   Q_OBJECT
 
   public:
-    Cube();
+    Cube(QObject *parent=0);
     ~Cube();
 
    /**
@@ -101,7 +102,7 @@ namespace Avogadro {
      * @return Index of the point closest to the position supplied.
      * @param pos Position to get closest index for.
      */
-    unsigned int index(const Eigen::Vector3d &pos) const;
+    unsigned int closestIndex(const Eigen::Vector3d &pos) const;
 
     /**
      * @return Index vector of the point closest to the position supplied, in
@@ -155,6 +156,7 @@ namespace Avogadro {
     Eigen::Vector3d m_min, m_max, m_spacing;
     Eigen::Vector3i m_points;
     QString m_name;
+    Q_DECLARE_PRIVATE(Cube)
   };
 } // End namespace Avogadro
 
