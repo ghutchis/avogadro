@@ -74,7 +74,7 @@ namespace Avogadro{
 
     // Use the openbabel GetSSSR() function to find all rings.
     // Special case for everything up to 7 membered rings.
-    QList<Fragment *> rings = pd->molecule()->rings();
+    QList<Fragment *> rings = const_cast<Molecule *>(pd->molecule())->rings();
 
     // Now actually draw the ring structures
     foreach(Fragment *r, rings) {
@@ -90,7 +90,7 @@ namespace Avogadro{
 
     // Use the openbabel GetSSSR() function to find all rings.
     // Special case for everything up to 7 membered rings.
-    QList<Fragment *> rings = pd->molecule()->rings();
+    QList<Fragment *> rings = const_cast<Molecule *>(pd->molecule())->rings();
 
     pd->painter()->setColor(0.7, 0.7, 0.7, m_alpha);
 

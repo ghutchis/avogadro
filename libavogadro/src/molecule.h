@@ -142,6 +142,10 @@ namespace Avogadro {
       void deleteCube(Cube *cube);
       void deleteCube(unsigned long int id);
 
+      Fragment *newResidue();
+      void deleteResidue(Fragment *residue);
+      void deleteResidue(unsigned long int id);
+
       Fragment *newRing();
       void deleteRing(Fragment *ring);
       void deleteRing(unsigned long int id);
@@ -157,9 +161,19 @@ namespace Avogadro {
       unsigned int numBonds() const;
 
       /**
+       * @return The total number of cubes in the molecule.
+       */
+      unsigned int numCubes() const;
+
+      /**
        * @return The total number of residues in the molecule.
        */
       unsigned int numResidues() const;
+
+      /**
+       * @return The total number of rings in the molecule.
+       */
+      unsigned int numRings() const;
 
       /**
        * @return the atom at the supplied index.
@@ -167,6 +181,9 @@ namespace Avogadro {
        */
       Atom* atom(int index);
 
+      /**
+       * @return the atom at the supplied unqique id.
+       */
       Atom *atomById(unsigned long id) const;
 
       /**
@@ -175,6 +192,9 @@ namespace Avogadro {
        */
       Bond* bond(int index);
 
+      /**
+       * @return the bond at the supplied unique id.
+       */
       Bond *bondById(unsigned long id) const;
 
       /**
@@ -212,7 +232,7 @@ namespace Avogadro {
       /**
        * @return a QList of all rings in the molecule.
        */
-      QList<Fragment *> rings() const;
+      QList<Fragment *> rings();
 
       /**
        * Delete all elements of the molecule.
@@ -224,7 +244,7 @@ namespace Avogadro {
        * structure in OpenBabel form, you must call setOBAtom in order to save
        * any changes you make to this object.
        */
-      OpenBabel::OBMol OBMol();
+      OpenBabel::OBMol OBMol() const;
 
       /**
        * Copy as much data as possible from the supplied OpenBabel OBMol to the
@@ -234,7 +254,7 @@ namespace Avogadro {
 
       const Eigen::Vector3d & center() const;
       const Eigen::Vector3d & normalVector() const;
-      const double & radius() const;
+      double radius() const;
       const Atom *farthestAtom() const;
       void translate(const Eigen::Vector3d&) { ; }
 

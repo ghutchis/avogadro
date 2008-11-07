@@ -45,12 +45,14 @@
 
   class MoleculePrivate {
     public:
-      MoleculePrivate() : farthestAtom(0), invalidGeomInfo(true), autoId(true), obmol(0) {}
+      MoleculePrivate() : farthestAtom(0), invalidGeomInfo(true),
+        invalidRings(true), autoId(true), obmol(0) {}
       mutable Eigen::Vector3d       center;
       mutable Eigen::Vector3d       normalVector;
       mutable double                radius;
       mutable Atom *                farthestAtom;
       mutable bool                  invalidGeomInfo;
+      mutable bool                  invalidRings;
       bool                          autoId;
 
       // std::vector used over QVector due to index issues, QVector uses ints
@@ -148,6 +150,7 @@
   Atom *Molecule::newAtom()
   {
     Q_D(Molecule);
+    d->invalidRings = true;
     Atom *atom = new Atom(this);
     d->atoms.push_back(atom);
     d->atomList.push_back(atom);
@@ -162,7 +165,7 @@
   Atom *Molecule::newAtom(unsigned long id)
   {
     Q_D(Molecule);
-
+    d->invalidRings = true;
     // we have to bypass the emit given by CreateAtom()
     d->autoId = false;
     Atom *atom = new Atom(this);
@@ -187,6 +190,7 @@
   {
     Q_D(Molecule);
     if(atom) {
+      d->invalidRings = true;
       // When deleting an atom this also implicitly deletes any bonds to the atom
       QList<unsigned long int> bonds = atom->bonds();
       foreach (unsigned long int bond, bonds)
@@ -233,6 +237,7 @@
   Bond *Molecule::newBond()
   {
     Q_D(Molecule);
+    d->invalidRings = true;
     Bond *bond = new Bond(this);
     d->bonds.push_back(bond);
     d->bondList.push_back(bond);
@@ -246,7 +251,7 @@
   Bond *Molecule::newBond(unsigned long id)
   {
     Q_D(Molecule);
-
+    d->invalidRings = true;
     d->autoId = false;
     Bond *bond = new Bond(this);
     d->autoId = true;
@@ -269,6 +274,7 @@
   {
     Q_D(Molecule);
     if(bond) {
+      d->invalidRings = true;
       d->bonds[bond->id()] = 0;
       // 1 based arrays stored/shown to user
       int index = bond->index();
@@ -356,6 +362,50 @@
       deleteCube(d->cubes[id]);
   }
 
+  Fragment * Molecule::newResidue()
+  {
+    Q_D(Molecule);
+
+    Fragment *residue = new Fragment(this);
+
+    d->residues.push_back(residue);
+    residue->setId(d->residues.size()-1);
+
+    d->residueList.push_back(residue);
+    residue->setIndex(d->residueList.size()-1);
+
+    // now that the id is correct, emit the signal
+    connect(residue, SIGNAL(updated()), this, SLOT(updatePrimitive()));
+    emit primitiveAdded(residue);
+    return(residue);
+  }
+
+  void Molecule::deleteResidue(Fragment *residue)
+  {
+    Q_D(Molecule);
+    if(residue) {
+      d->residues[residue->id()] = 0;
+      // 0 based arrays stored/shown to user
+      int index = residue->index();
+      d->residueList.removeAt(index);
+      for (int i = index; i < d->residueList.size(); ++i) {
+        d->residueList[i]->setIndex(i);
+      }
+
+      residue->deleteLater();
+      disconnect(residue, SIGNAL(updated()), this, SLOT(updatePrimitive()));
+      emit primitiveRemoved(residue);
+      qDebug() << "Residue" << residue->id() << residue->index() << "deleted";
+    }
+  }
+
+  void Molecule::deleteResidue(unsigned long int id)
+  {
+    Q_D(Molecule);
+    if (id < d->residues.size())
+      deleteResidue(d->residues[id]);
+  }
+
   Fragment * Molecule::newRing()
   {
     Q_D(Molecule);
@@ -430,9 +480,13 @@
   {
     // Delete any connected hydrogen atoms
     QList<unsigned long int> neighbors = atom->neighbors();
-    foreach (unsigned long int a, neighbors)
-      if (atomById(a)->isHydrogen())
-        deleteAtom(a);
+    foreach (unsigned long int a, neighbors) {
+      if (atomById(a)) {
+        if (atomById(a)->isHydrogen()) {
+          deleteAtom(a);
+        }
+      }
+    }
   }
 
   void Molecule::deleteHydrogens()
@@ -455,10 +509,22 @@
     return d->bondList.size();
   }
 
+  unsigned int Molecule::numCubes() const
+  {
+    Q_D(const Molecule);
+    return d->cubeList.size();
+  }
+
   unsigned int Molecule::numResidues() const
   {
-    // FIXME Need to add residues
-    return 0;
+    Q_D(const Molecule);
+    return d->residueList.size();
+  }
+
+  unsigned int Molecule::numRings() const
+  {
+    Q_D(const Molecule);
+    return d->ringList.size();
   }
 
   void Molecule::updatePrimitive()
@@ -521,15 +587,32 @@
     return d->residueList;
   }
 
-  QList<Fragment *> Molecule::rings() const
+  QList<Fragment *> Molecule::rings()
   {
-    Q_D(const Molecule);
+    Q_D(Molecule);
+    // Check is the rings need updating before returning the list
+    if(d->invalidRings) {
+      // Now update the rings
+      foreach(Fragment *ring, d->ringList) {
+        deleteRing(ring);
+      }
+      OpenBabel::OBMol obmol = OBMol();
+      std::vector<OpenBabel::OBRing *> rings;
+      rings = obmol.GetSSSR();
+      foreach(OpenBabel::OBRing *r, rings) {
+        Fragment *ring = newRing();
+        foreach(int index, r->_path) {
+          ring->addAtom(atom(index-1)->id());
+        }
+      }
+      d->invalidRings = false;
+    }
     return d->ringList;
   }
 
-  OpenBabel::OBMol Molecule::OBMol()
+  OpenBabel::OBMol Molecule::OBMol() const
   {
-    Q_D(Molecule);
+    Q_D(const Molecule);
     // Right now we make an OBMol each time
     OpenBabel::OBMol obmol;
     obmol.BeginModify();
@@ -600,6 +683,9 @@
       qDebug() << "Cube" << i << "added.";
     }
 
+    // Copy the residues across...
+    
+
     // Copy the rings across now
     std::vector<OpenBabel::OBRing *> rings;
     rings = obmol->GetSSSR();
@@ -627,7 +713,7 @@
     return d->normalVector;
   }
 
-  const double & Molecule::radius() const
+  double Molecule::radius() const
   {
     Q_D(const Molecule);
     if( d->invalidGeomInfo ) computeGeomInfo();
@@ -645,23 +731,39 @@
   {
     Q_D(Molecule);
     d->atoms.resize(0);
-    d->bonds.resize(0);
-    d->cubes.resize(0);
     foreach (Atom *atom, d->atomList) {
       atom->deleteLater();
       emit primitiveRemoved(atom);
     }
     d->atomList.clear();
+
+    d->bonds.resize(0);
     foreach (Bond *bond, d->bondList) {
       bond->deleteLater();
       emit primitiveRemoved(bond);
     }
     d->bondList.clear();
+
+    d->cubes.resize(0);
     foreach (Cube *cube, d->cubeList) {
       cube->deleteLater();
       emit primitiveRemoved(cube);
     }
     d->cubeList.clear();
+
+    d->residues.resize(0);
+    foreach (Fragment *residue, d->residueList) {
+      residue->deleteLater();
+      emit primitiveRemoved(residue);
+    }
+    d->residueList.clear();
+
+    d->rings.resize(0);
+    foreach (Fragment *ring, d->ringList) {
+      ring->deleteLater();
+      emit primitiveRemoved(ring);
+    }
+    d->ringList.clear();
   }
 
   Molecule &Molecule::operator=(const Molecule& other)
