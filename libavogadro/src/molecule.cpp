@@ -480,12 +480,15 @@
   {
     // Delete any connected hydrogen atoms
     QList<unsigned long int> neighbors = atom->neighbors();
+    
     foreach (unsigned long int a, neighbors) {
-      if (atomById(a)) {
-        if (atomById(a)->isHydrogen()) {
+      Atom *nbrAtom = atomById(a);
+      // we need to check if the atom still exists
+      if (!nbrAtom)
+        continue;
+      
+      if (nbrAtom->isHydrogen())
           deleteAtom(a);
-        }
-      }
     }
   }
 
@@ -637,6 +640,7 @@
     // Take an OBMol, copy everything we need and store this object
     Q_D(Molecule);
     d->obmol = obmol;
+    clear();
     // Copy all the parts of the OBMol to our Molecule
 
     // Begin by copying all of the atoms
