@@ -58,13 +58,13 @@ target_link_libraries(selectrotatetool ${LINK_LIBS})
 install(TARGETS selectrotatetool DESTINATION ${DESTINATION_DIR})
 
 ### autoopttool
-#set(autoopttool_SRCS autoopttool.cpp)
-#qt4_add_resources(autoopttool_RC_SRCS autoopttool.qrc)
-#qt4_automoc(${autoopttool_SRCS})
-#add_library(autoopttool MODULE
-#    ${autoopttool_SRCS} ${autoopttool_RC_SRCS})
-#target_link_libraries(autoopttool ${LINK_LIBS})
-#install(TARGETS autoopttool DESTINATION ${DESTINATION_DIR})
+set(autoopttool_SRCS autoopttool.cpp)
+qt4_add_resources(autoopttool_RC_SRCS autoopttool.qrc)
+qt4_automoc(${autoopttool_SRCS})
+add_library(autoopttool MODULE
+    ${autoopttool_SRCS} ${autoopttool_RC_SRCS})
+target_link_libraries(autoopttool ${LINK_LIBS})
+install(TARGETS autoopttool DESTINATION ${DESTINATION_DIR})
 
 ### navigatetool
 set(navigatetool_SRCS navigatetool.cpp)
