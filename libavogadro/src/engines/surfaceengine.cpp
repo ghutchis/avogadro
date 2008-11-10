@@ -32,6 +32,8 @@
 #include <avogadro/cube.h>
 #include <avogadro/molecule.h>
 
+#include <avogadro/boxcontrol.h>
+
 #include <Eigen/Geometry>
 
 #include <QGLWidget>
@@ -45,16 +47,18 @@ using namespace Eigen;
 namespace Avogadro {
 
   SurfaceEngine::SurfaceEngine(QObject *parent) : Engine(parent), m_settingsWidget(0),
-  m_alpha(0.5), m_stepSize(0.33333), m_padding(2.5), m_renderMode(0), m_colorMode(0)
+  m_alpha(0.5), m_stepSize(0.33333), m_padding(2.5), m_renderMode(0), m_colorMode(0), m_drawBox(false)
   {
     setDescription(tr("Surface rendering"));
-    //m_grid = new Grid;
     m_vdwThread = new VDWGridThread;
     m_isoGen = new IsoGen;
     connect(m_vdwThread, SIGNAL(finished()), this, SLOT(vdwThreadFinished()));
     connect(m_isoGen, SIGNAL(finished()), this, SLOT(isoGenFinished()));
     m_color = Color(1.0, 0.0, 0.0, m_alpha);
     m_surfaceValid = false;
+
+    m_boxControl = new BoxControl;
+    connect(m_boxControl, SIGNAL(modified()), this, SLOT(boxModified()));
 
     // clipping stuff
     m_clip = false;
@@ -70,6 +74,7 @@ namespace Avogadro {
     //delete m_grid;
     delete m_isoGen;
     delete m_vdwThread;
+    delete m_boxControl;
 
     // Delete the settings widget if it exists
     if(m_settingsWidget)
@@ -155,14 +160,13 @@ namespace Avogadro {
 
     if (!m_surfaceValid)
     {
-      //VDWSurface(mol);
-
       PrimitiveList prims = primitives();
-      m_vdwThread->init(mol, prims, pd);
+      if (!m_boxControl->isModified())
+        m_vdwThread->init(mol, prims, pd);
+      else
+        m_vdwThread->init(mol, prims, pd, m_boxControl);
       m_vdwThread->start();
 
-      //m_isoGen->init(m_grid, pd);
-      //m_isoGen->start();
       m_surfaceValid = true;
       return true;
     }
@@ -195,11 +199,11 @@ namespace Avogadro {
       glStencilFunc(GL_ALWAYS, 0, 0);
       glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
       glCullFace(GL_FRONT); // render back faces only
-      doWork(mol);
+      doWork(pd, mol);
       // second pass: decrement stencil buffer value on front faces
       glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
       glCullFace(GL_BACK); // render front faces only
-      doWork(mol);
+      doWork(pd, mol);
       // drawing clip planes masked by stencil buffer content
       glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
       glEnable(GL_DEPTH_TEST);
@@ -255,7 +259,7 @@ namespace Avogadro {
       glEnable(GL_CLIP_PLANE0); // enabling clip plane again
     }
 
-    doWork(mol);
+    doWork(pd, mol);
 
     if (m_renderMode)
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -277,14 +281,13 @@ namespace Avogadro {
 
     if (!m_surfaceValid)
     {
-      //VDWSurface(mol);
-
       PrimitiveList prims = primitives();
-      m_vdwThread->init(mol, prims, pd);
+      if (!m_boxControl->isModified())
+        m_vdwThread->init(mol, prims, pd);
+      else
+        m_vdwThread->init(mol, prims, pd, m_boxControl);
       m_vdwThread->start();
 
-      //m_isoGen->init(m_grid, pd);
-      //m_isoGen->start();
       m_surfaceValid = true;
       return true;
     }
@@ -320,11 +323,11 @@ namespace Avogadro {
       glStencilFunc(GL_ALWAYS, 0, 0);
       glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
       glCullFace(GL_FRONT); // render back faces only
-      doWork(mol);
+      doWork(pd, mol);
       // second pass: decrement stencil buffer value on front faces
       glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
       glCullFace(GL_BACK); // render front faces only
-      doWork(mol);
+      doWork(pd, mol);
       // drawing clip planes masked by stencil buffer content
       glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
       glEnable(GL_DEPTH_TEST);
@@ -380,7 +383,7 @@ namespace Avogadro {
       glEnable(GL_CLIP_PLANE0); // enabling clip plane again
     }
 
-    doWork(mol);
+    doWork(pd, mol);
 
     glDisable(GL_BLEND);
     glDepthMask(GL_FALSE);
@@ -403,7 +406,10 @@ namespace Avogadro {
     if (!m_surfaceValid)
     {
       PrimitiveList prims = primitives();
-      m_vdwThread->init(mol, prims, pd);
+      if (!m_boxControl->isModified())
+        m_vdwThread->init(mol, prims, pd);
+      else
+        m_vdwThread->init(mol, prims, pd, m_boxControl);
       m_vdwThread->start();
       m_surfaceValid = true;
       return true;
@@ -414,6 +420,8 @@ namespace Avogadro {
 
     switch (m_renderMode) {
       case 0:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        break;
       case 1:
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         break;
@@ -422,14 +430,15 @@ namespace Avogadro {
         break;
     }
 
-    doWork(mol);
+    doWork(pd, mol);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if (m_renderMode)
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     return true;
   }
 
-  void SurfaceEngine::doWork(Molecule *mol)
+  void SurfaceEngine::doWork(PainterDevice *pd, Molecule *mol)
   {
     glBegin(GL_TRIANGLES);
     if (m_colorMode == 1) { // ESP
@@ -471,6 +480,9 @@ namespace Avogadro {
       }
     }
     glEnd();
+
+    if (m_drawBox)
+      m_boxControl->addPrimitives();
   }
 
   inline double SurfaceEngine::radius(const Atom *a) const
@@ -518,12 +530,12 @@ namespace Avogadro {
   void SurfaceEngine::setColorMode(int value)
   {
     if (m_settingsWidget) {
-			// Enable/Disable both the custom color widget and label
+      // Enable/Disable both the custom color widget and label
       if (value == 1) { // ESP
-				m_settingsWidget->customColorLabel->setEnabled(false);
+        m_settingsWidget->customColorLabel->setEnabled(false);
         m_settingsWidget->customColorButton->setEnabled(false);
       } else { // Custom color
-				m_settingsWidget->customColorLabel->setEnabled(true);
+        m_settingsWidget->customColorLabel->setEnabled(true);
         m_settingsWidget->customColorButton->setEnabled(true);
       }
     }
@@ -537,6 +549,32 @@ namespace Avogadro {
     m_color.set(color.redF(), color.greenF(), color.blueF(), m_alpha);
     emit changed();
   }
+ 
+  void SurfaceEngine::setDrawBox(int value)
+  {
+    if (value == 0) {
+      m_drawBox = false;
+      m_boxControl->removePrimitives();
+    } else {
+      m_drawBox = true;      
+      m_boxControl->addPrimitives();
+    }
+
+    emit changed();
+  }
+
+  void SurfaceEngine::boxModified()
+  {
+    m_surfaceValid = false;
+    emit changed();
+  }
+  
+  void SurfaceEngine::resetBox()
+  {
+    m_surfaceValid = false;
+    m_boxControl->setModified(false);
+    emit changed();  
+  }
 
   QWidget* SurfaceEngine::settingsWidget()
   {
@@ -548,7 +586,13 @@ namespace Avogadro {
       connect(m_settingsWidget->colorCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(setColorMode(int)));
       connect(m_settingsWidget->customColorButton, SIGNAL(colorChanged(QColor)), this, SLOT(setColor(QColor)));
       connect(m_settingsWidget, SIGNAL(destroyed()), this, SLOT(settingsWidgetDestroyed()));
-
+      
+      // draw box...
+      connect(m_settingsWidget->drawBoxCheck, SIGNAL(stateChanged(int)),
+              this, SLOT(setDrawBox(int)));
+      connect(m_settingsWidget->drawBoxResetButton, SIGNAL(clicked()),
+              this, SLOT(resetBox()));
+ 
       // clipping stuff
       connect(m_settingsWidget->clipCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setClipEnabled(int)));
       connect(m_settingsWidget->ASpinBox, SIGNAL(valueChanged(double)), this, SLOT(setClipEqA(double)));
@@ -560,6 +604,7 @@ namespace Avogadro {
       m_settingsWidget->opacitySlider->setValue(static_cast<int>(20*m_alpha));
       m_settingsWidget->renderCombo->setCurrentIndex(m_renderMode);
       m_settingsWidget->colorCombo->setCurrentIndex(m_colorMode);
+      m_settingsWidget->drawBoxCheck->setChecked(m_drawBox);
       if (m_colorMode == 1) { // ESP
         m_settingsWidget->customColorButton->setEnabled(false);
       } else { // Custom color
@@ -575,6 +620,10 @@ namespace Avogadro {
   void SurfaceEngine::vdwThreadFinished()
   {
     qDebug() << "vdwThreadFinished()";
+
+    if (!m_boxControl->isModified())
+      m_boxControl->setOppositeCorners( m_vdwThread->grid()->cube()->min(), m_vdwThread->grid()->cube()->max() );
+ 
     m_isoGen->init(m_vdwThread->grid(), 0, false, m_vdwThread->stepSize());
     m_isoGen->start();
   }
@@ -628,28 +677,27 @@ namespace Avogadro {
     settings.setValue("opacity", 20*m_alpha);
     settings.setValue("renderMode", m_renderMode);
     settings.setValue("colorMode", m_colorMode);
-    /*
-    settings.setValue("colorRed", m_color.red());
-    settings.setValue("colorGreen", m_color.green());
-    settings.setValue("colorBlue", m_color.blue());
-    */
+    settings.setValue("color", m_color.color());
+    settings.setValue("drawBox", m_drawBox);
   }
 
   void SurfaceEngine::readSettings(QSettings &settings)
   {
+    qDebug() << "readSettings()";
     Engine::readSettings(settings);
     setOpacity(settings.value("opacity", 20).toInt());
     setRenderMode(settings.value("renderMode", 0).toInt());
     setColorMode(settings.value("colorMode", 0).toInt());
-    m_color.set(settings.value("colorRed", 1.0).toDouble(),
-                settings.value("colorGreen", 0.0).toDouble(),
-                settings.value("colorBlue", 0.0).toDouble());
+    m_color = settings.value("color").value<QColor>();
+    m_color.setAlpha(m_alpha);
+    setDrawBox(settings.value("drawBox").toBool());
 
     if(m_settingsWidget)
     {
       m_settingsWidget->opacitySlider->setValue(static_cast<int>(20*m_alpha));
       m_settingsWidget->renderCombo->setCurrentIndex(m_renderMode);
       m_settingsWidget->colorCombo->setCurrentIndex(m_colorMode);
+      m_settingsWidget->drawBoxCheck->setChecked(m_drawBox);
       QColor initial;
       initial.setRgbF(m_color.red(), m_color.green(), m_color.blue());
       m_settingsWidget->customColorButton->setColor(initial);
@@ -670,9 +718,32 @@ namespace Avogadro {
   void VDWGridThread::init(Molecule *molecule, PrimitiveList &primitives, const PainterDevice* pd, double stepSize)
   {
     m_mutex.lock();
-    //if (!m_mutex.tryLock())
-    //  return;
 
+    initStepSize(pd, stepSize);
+
+    m_molecule = molecule;
+    m_primitives = primitives;
+    m_boxControl = 0;
+
+    m_mutex.unlock();
+  }
+
+  void VDWGridThread::init(Molecule *molecule, PrimitiveList &primitives, const PainterDevice* pd, 
+      BoxControl *boxControl, double stepSize)
+  {
+    m_mutex.lock();
+
+    initStepSize(pd, stepSize);
+
+    m_molecule = molecule;
+    m_primitives = primitives;
+    m_boxControl = boxControl;
+
+    m_mutex.unlock();
+  }
+
+  void VDWGridThread::initStepSize(const PainterDevice* pd, double stepSize)
+  {
     if (stepSize)
       m_stepSize = stepSize;
     else
@@ -699,12 +770,8 @@ namespace Avogadro {
         m_stepSize = 0.10;
       }
     }
-
-    m_molecule = molecule;
-    m_primitives = primitives;
-
-    m_mutex.unlock();
   }
+
 
   Grid* VDWGridThread::grid()
   {
@@ -740,8 +807,12 @@ namespace Avogadro {
     m_molecule->lock()->unlock();
 
     Cube *cube = new Cube;
-    cube->setLimits(m_molecule, m_stepSize, 2.5);
+    if (!m_boxControl)
+      cube->setLimits(m_molecule, m_stepSize, 2.5);
+    else
+      cube->setLimits(m_boxControl->min(), m_boxControl->max(), m_stepSize);
     Vector3d min = cube->min();
+    Vector3d max = cube->max();
     Vector3i dim = cube->dimensions();
 
     Vector3d coord;
@@ -761,13 +832,13 @@ namespace Avogadro {
       index = cube->indexVector(surfaceAtomsPos[ai]);
 
       for (int i = index[0] - numBoxes; i < index[0] + numBoxes; ++i) {
-        if (i < 0) continue;
+        if ((i < 0) || (i >= dim.x())) continue;
         coord(0) = min[0] + i * m_stepSize;
         for (int j = index[1] - numBoxes; j < index[1] + numBoxes; ++j) {
-          if (j < 0) continue;
+          if ((j < 0) || (j >= dim.y())) continue;
           coord(1) = min[1] + j * m_stepSize;
           for (int k = index[2] - numBoxes; k < index[2] + numBoxes; ++k) {
-            if (k < 0) continue;
+            if ((k < 0) || (k >= dim.z())) continue;
             coord(2) = min[2] + k * m_stepSize;
             distance = fabs((coord - surfaceAtomsPos[ai]).norm());
             distance -= etab.GetVdwRad(surfaceAtomsNum[ai]);

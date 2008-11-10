@@ -381,6 +381,11 @@ namespace Avogadro {
        * @return true if the debug panel is being drawn
        */
       bool renderDebug();
+      
+      /**
+       * @return true if the primitives have being drawn
+       */
+      bool renderPrimitives();
 
       /**
        * Set the ToolGroup of the GLWidget.

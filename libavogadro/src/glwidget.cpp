@@ -38,6 +38,9 @@
 #include <avogadro/bond.h>
 #include <avogadro/molecule.h>
 
+#include <avogadro/point.h>
+#include <avogadro/line.h>
+
 //#include "elementcolor.h"
 
 // Include static engine headers
@@ -289,6 +292,8 @@ namespace Avogadro {
     GLuint                 dlistOpaque;
     GLuint                 dlistTransparent;
 
+    Primitive             *clickedPrimitive;
+
     /**
       * Member GLPainterDevice which is passed to the engines.
       */
@@ -372,13 +377,12 @@ namespace Avogadro {
         m_initialized = true;
       }
 
-
       if ( m_resize ) {
         m_widget->resizeGL( m_width, m_height );
         m_resize=false;
       }
 
-			d->background.setAlphaF(0.0);
+      d->background.setAlphaF(0.0);
       m_widget->qglClearColor(d->background);
       m_widget->paintGL();
       m_widget->swapBuffers();
@@ -637,6 +641,35 @@ namespace Avogadro {
     return d->renderDebug;
   }
 
+  bool GLWidget::renderPrimitives()
+  {
+    QVector<int> ids(Primitive::LastType, 0);
+    foreach ( Primitive *primitive, d->primitives) {
+      switch (primitive->type()) {
+        case Primitive::PointType:
+          {
+          Point *point = static_cast<Point*>(primitive);
+          d->pd->painter()->setColor( point->color() );
+          d->pd->painter()->setName( Primitive::PointType, ids[Primitive::PointType]++ );
+          d->pd->painter()->drawSphere( point->pos(), point->radius() );
+          }
+          break;
+        case Primitive::LineType:
+          {
+          Line *line = static_cast<Line*>(primitive);
+          d->pd->painter()->setColor( line->color() );
+          d->pd->painter()->setName( Primitive::LineType, ids[Primitive::LineType]++ );
+          d->pd->painter()->drawLine( line->begin(), line->end(), line->width() );
+          }
+          break; 
+        default:
+          break;
+      }
+    }
+
+    return true;
+  }
+
   void GLWidget::render()
   {
     d->painter->begin(this);
@@ -695,6 +728,9 @@ namespace Avogadro {
         }
       }
     }
+
+    // Render graphical primitives like arrows, points, planes and so on...
+    renderPrimitives();
 
     // Render the active tool
     if ( d->tool ) {
@@ -967,6 +1003,23 @@ namespace Avogadro {
 
   void GLWidget::mousePressEvent( QMouseEvent * event )
   {
+    d->clickedPrimitive = computeClickedPrimitive( event->pos() );
+
+    if ( d->clickedPrimitive ) {
+      switch (d->clickedPrimitive->type()) {
+        case Primitive::PointType:
+          {
+          Point *point = static_cast<Point*>(d->clickedPrimitive);
+          point->mousePressed( event );
+          qDebug() << "point clicked!!";
+          }
+          return;
+        default:
+          d->clickedPrimitive = 0;
+          break;
+      }
+    }
+    
     if ( d->tool ) {
       QUndoCommand *command = 0;
       command = d->tool->mousePress( this, event );
@@ -981,7 +1034,21 @@ namespace Avogadro {
 
   void GLWidget::mouseReleaseEvent( QMouseEvent * event )
   {
-    if ( d->tool ) {
+    if ( d->clickedPrimitive ) {
+      switch (d->clickedPrimitive->type()) {
+        case Primitive::PointType:
+          {
+          Point *point = static_cast<Point*>(d->clickedPrimitive);
+          point->mouseReleased( event );
+          qDebug() << "point clicked!!";
+          }
+          return;
+        default:
+          break;
+      }
+
+      d->clickedPrimitive = 0;
+    } else if ( d->tool ) {
       QUndoCommand *command = d->tool->mouseRelease( this, event );
 
       if ( command && d->undoStack ) {
@@ -1010,7 +1077,20 @@ namespace Avogadro {
 #ifdef ENABLE_THREADED_GL
     d->renderMutex.unlock();
 #endif
-    if ( d->tool ) {
+    if ( d->clickedPrimitive ) {
+      switch (d->clickedPrimitive->type()) {
+        case Primitive::PointType:
+          {
+          Point *point = static_cast<Point*>(d->clickedPrimitive);
+          point->mouseMoved( event );
+          qDebug() << "point clicked!!";
+          }
+          return;
+        default:
+          break;
+      }
+ 
+    } else if ( d->tool ) {
       QUndoCommand *command = d->tool->mouseMove( this, event );
       if ( command && d->undoStack ) {
         d->undoStack->push( command );
@@ -1425,6 +1505,8 @@ namespace Avogadro {
         return static_cast<Atom *>(molecule()->atom(hit.name()));
       else if(hit.type() == Primitive::BondType)
         return static_cast<Bond *>(molecule()->bond(hit.name()));
+      else if(hit.type() == Primitive::PointType)
+        return static_cast<Point *>( d->primitives.subList(Primitive::PointType).at(hit.name()) );
     }
     return 0;
   }

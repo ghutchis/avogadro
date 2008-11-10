@@ -78,6 +78,8 @@ namespace Avogadro {
         GridType,
         /// Points (i.e., non-atoms)
         PointType,
+        /// Lines
+        LineType,
         /// Vectors (i.e., arrows, dipole moments)
         VectorType,
         /// Non-bonded interactions (i.e., non-bond connections)
