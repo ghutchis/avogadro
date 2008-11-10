@@ -54,6 +54,8 @@ namespace Avogadro {
        */
       Fragment(QObject *parent=0);
 
+      explicit Fragment(Type type, QObject *parent=0);
+
       ~Fragment();
 
       /**
@@ -74,10 +76,12 @@ namespace Avogadro {
       void removeBond(unsigned long int id);
       QList<unsigned long int> bonds();
 
-    private:
+    protected:
       QString m_name;
       QList<unsigned long int> m_atoms;
       QList<unsigned long int> m_bonds;
+
+    private:
       Q_DECLARE_PRIVATE(Fragment)
   };
 

@@ -29,6 +29,9 @@ namespace Avogadro {
   Fragment::Fragment(QObject *parent) : Primitive(FragmentType, parent)
   { }
 
+  Fragment::Fragment(Type type, QObject *parent) : Primitive(type, parent)
+  { }
+
   Fragment::~Fragment()
   { }
 

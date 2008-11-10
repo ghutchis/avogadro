@@ -26,21 +26,19 @@
 #ifndef RESIDUE_H
 #define RESIDUE_H
 
-#include <avogadro/primitive.h>
+#include <avogadro/fragment.h>
 
 namespace Avogadro {
 
   /**
-   * @class Residue primitive.h <avogadro/primitive.h>
+   * @class Residue residue.h <avogadro/residue.h>
    * @brief Residue Class
-   * @author Donald Ephraim Curtis
+   * @author Marcus D. Hanwell
    *
-   * The Residue class is a Primitive subclass that provides a wrapper around
-   * OpenBabel::OBResidue.  This class is provided to give more control of
-   * the OpenBabel::OBResidue class through slots/signals provided by the
-   * Primitive superclass.
+   * The Residue class is a Fragment subclass that provides the unique
+   * additional information required for residues.
    */
-  class A_EXPORT Residue : public Primitive
+  class A_EXPORT Residue : public Fragment
   {
     Q_OBJECT
 
@@ -50,11 +48,7 @@ namespace Avogadro {
        *
        * @param parent the object parent.
        */
-      Residue(QObject *parent=0): Primitive(ResidueType, parent) { }
-
-      /// FIXME More functions that need to be fleshed out
-      QString name() // Replaces GetName
-      { return "FIXME"; }
+      Residue(QObject *parent=0): Fragment(ResidueType, parent) { }
 
       QString numString() // Replaces GetName
       { return "FIXME"; }

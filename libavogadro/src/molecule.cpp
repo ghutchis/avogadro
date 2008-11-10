@@ -39,6 +39,7 @@
 #include <openbabel/griddata.h>
 #include <openbabel/grid.h>
 
+#include <QReadWriteLock>
 #include <QDebug>
 
  namespace Avogadro{
@@ -150,6 +151,7 @@
   Atom *Molecule::newAtom()
   {
     Q_D(Molecule);
+    m_lock->lockForWrite();
     d->invalidRings = true;
     Atom *atom = new Atom(this);
     d->atoms.push_back(atom);
@@ -158,6 +160,7 @@
     atom->setIndex(d->atomList.size()-1);
     connect(atom, SIGNAL(updated()), this, SLOT(updatePrimitive()));
     emit primitiveAdded(atom);
+    m_lock->unlock();
     return atom;
   }
 
@@ -165,6 +168,7 @@
   Atom *Molecule::newAtom(unsigned long id)
   {
     Q_D(Molecule);
+    m_lock->lockForWrite();
     d->invalidRings = true;
     // we have to bypass the emit given by CreateAtom()
     d->autoId = false;
@@ -183,6 +187,7 @@
     // now that the id is correct, emit the signal
     connect(atom, SIGNAL(updated()), this, SLOT(updatePrimitive()));
     emit primitiveAdded(atom);
+    m_lock->unlock();
     return(atom);
   }
 
@@ -190,6 +195,7 @@
   {
     Q_D(Molecule);
     if(atom) {
+      m_lock->lockForWrite();
       d->invalidRings = true;
       // When deleting an atom this also implicitly deletes any bonds to the atom
       QList<unsigned long int> bonds = atom->bonds();
@@ -206,6 +212,7 @@
       disconnect(atom, SIGNAL(updated()), this, SLOT(updatePrimitive()));
       emit primitiveRemoved(atom);
       qDebug() << "Atom" << atom->id() << atom->index() << "deleted";
+      m_lock->unlock();
     }
   }
 
@@ -420,7 +427,7 @@
 
     // now that the id is correct, emit the signal
     connect(ring, SIGNAL(updated()), this, SLOT(updatePrimitive()));
-    emit primitiveAdded(ring);
+//    emit primitiveAdded(ring);
     return(ring);
   }
 
@@ -438,7 +445,7 @@
 
       ring->deleteLater();
       disconnect(ring, SIGNAL(updated()), this, SLOT(updatePrimitive()));
-      emit primitiveRemoved(ring);
+//      emit primitiveRemoved(ring);
       qDebug() << "Ring" << ring->id() << ring->index() << "deleted";
     }
   }
@@ -484,11 +491,15 @@
     foreach (unsigned long int a, neighbors) {
       Atom *nbrAtom = atomById(a);
       // we need to check if the atom still exists
-      if (!nbrAtom)
-        continue;
-      
-      if (nbrAtom->isHydrogen())
+      if (nbrAtom) {
+        if (nbrAtom->isHydrogen()) {
           deleteAtom(a);
+        }
+      }
+      else {
+        qDebug() << "Error, atom advertising deleted neighbor" << atom->id()
+                 << a;
+      }
     }
   }
 

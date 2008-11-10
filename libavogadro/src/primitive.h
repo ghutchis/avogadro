@@ -104,7 +104,7 @@ namespace Avogadro {
        */
       explicit Primitive(Type type, QObject *parent=0);
       /**
-       * Deconstructor
+       * Destructor
        */
       virtual ~Primitive();
 
@@ -163,12 +163,13 @@ namespace Avogadro {
       Primitive(PrimitivePrivate &dd, QObject *parent = 0);
       Primitive(PrimitivePrivate &dd, Type type, QObject *parent=0);
 
-    private:
-      Q_DECLARE_PRIVATE(Primitive)
       enum Primitive::Type m_type;
       unsigned long m_id;
       unsigned long m_index;
       QReadWriteLock *m_lock;
+
+    private:
+      Q_DECLARE_PRIVATE(Primitive)
 
   };
 
