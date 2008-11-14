@@ -70,6 +70,7 @@
 #include <openbabel/griddata.h>
 #include <openbabel/grid.h>
 #include "../cube.h"
+#include "../mesh.h"
 
 namespace Avogadro
 {
@@ -109,14 +110,6 @@ namespace Avogadro
     Cube *m_cube;
   };
 
-  // Triangle structure
-  struct triangle
-  {
-    Eigen::Vector3f p0;
-    Eigen::Vector3f p1;
-    Eigen::Vector3f p2;
-  };
-
   // Does isosurface tessellation. Called from gldraw only
   class IsoGen : public QThread
   {
@@ -129,17 +122,17 @@ namespace Avogadro
     ~IsoGen() { ; }
 
     // Vertex/normal-lists
-    QList<triangle> m_normList, m_normListCopy;
-    QList<triangle> m_vertList, m_vertListCopy;
+    Mesh m_mesh, m_meshCopy;
 
     void run();
 
     // Central functions
     void init(Grid *grid, const PainterDevice *pd, bool interpolate = false,
               double stepSize = 0.0);
-    int numTriangles();
-    triangle getTriangle(int i);
-    triangle getNormal(int i);
+//    int numTriangles();
+//    triangle getTriangle(int i);
+//    triangle getNormal(int i);
+    Mesh & mesh() { return m_mesh; }
 
   private:
     Grid *m_grid; // OpenBabel Grid

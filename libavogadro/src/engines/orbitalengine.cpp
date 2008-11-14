@@ -186,11 +186,18 @@ namespace Avogadro {
 
   bool OrbitalEngine::renderSurfaces(PainterDevice *pd)
   {
+    pd->painter()->setColor(&m_posColor);
+    pd->painter()->drawMesh(m_isoGen->mesh(), m_renderMode);
+
+    pd->painter()->setColor(&m_negColor);
+    pd->painter()->drawMesh(m_isoGen2->mesh(), m_renderMode, false);
+/*
     glBegin(GL_TRIANGLES);
 
     // Render the positive surface
     m_posColor.apply();
     m_posColor.applyAsMaterials();
+    
     for(int i=0; i < m_isoGen->numTriangles(); ++i)
     {
       triangle t = m_isoGen->getTriangle(i);
@@ -222,7 +229,7 @@ namespace Avogadro {
       glVertex3fv(t.p0.data());
     }
     glEnd();
-
+*/
     // Draw the extents of the cube if requested to
     if (m_drawBox) {
       pd->painter()->setColor(1.0, 1.0, 1.0);

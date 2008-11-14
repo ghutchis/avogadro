@@ -545,8 +545,7 @@ namespace Avogadro
       return;
 
     // Clear vertex/normal-lists
-    m_normList.clear();
-    m_vertList.clear();
+    m_mesh.clear();
 
     // Interpolate if m_interpolate is true, otherwise use the faster access
     // methods available if we are iterating over the actual grid points.
@@ -582,8 +581,7 @@ namespace Avogadro
     }
 
     // Save previous vertex/normal-lists for rendering
-    m_normListCopy = m_normList;
-    m_vertListCopy = m_vertList;
+    m_meshCopy = m_mesh;
 
     m_mutex.unlock();
     qDebug() << "end run()";
@@ -758,8 +756,8 @@ namespace Avogadro
     }
 
     // Vertex/normal temporaries
-    triangle normTmp;
-    triangle vertTmp;
+    std::vector<Eigen::Vector3f> vertexTmp(3);
+    std::vector<Eigen::Vector3f> normalTmp(3);
 
     // Draw the triangles that were found. There can be up to five per cube
     // "Abuse" free iEdgeFlags
@@ -770,20 +768,20 @@ namespace Avogadro
         break;
 
       iEdgeFlags = a2iTriangleConnectionTable[iFlagIndex][iEdge++];
-      normTmp.p0 = asEdgeNorm[iEdgeFlags];
-      vertTmp.p0 = asEdgeVertex[iEdgeFlags];
+      vertexTmp[0] = asEdgeVertex[iEdgeFlags];
+      normalTmp[0] = asEdgeNorm[iEdgeFlags];
 
       iEdgeFlags = a2iTriangleConnectionTable[iFlagIndex][iEdge++];
-      normTmp.p1 = asEdgeNorm[iEdgeFlags];
-      vertTmp.p1 = asEdgeVertex[iEdgeFlags];
+      vertexTmp[1] = asEdgeVertex[iEdgeFlags];
+      normalTmp[1] = asEdgeNorm[iEdgeFlags];
 
       iEdgeFlags = a2iTriangleConnectionTable[iFlagIndex][iEdge];
-      normTmp.p2 = asEdgeNorm[iEdgeFlags];
-      vertTmp.p2 = asEdgeVertex[iEdgeFlags];
+      vertexTmp[2] = asEdgeVertex[iEdgeFlags];
+      normalTmp[2] = asEdgeNorm[iEdgeFlags];
 
-      m_normList.append(normTmp);
-      m_vertList.append(vertTmp);
-    }
+      m_mesh.addTriangles(vertexTmp);
+      m_mesh.addNormals(normalTmp);
+   }
   } // vMarchCube1()
 
   // vMarchCube1 performs the Marching Cubes algorithm on a single cube
@@ -884,8 +882,8 @@ namespace Avogadro
     }
 
     // Vertex/normal temporaries
-    triangle normTmp;
-    triangle vertTmp;
+    std::vector<Eigen::Vector3f> vertexTmp(3);
+    std::vector<Eigen::Vector3f> normalTmp(3);
 
     // Draw the triangles that were found. There can be up to five per cube
     // "Abuse" free iEdgeFlags
@@ -896,22 +894,22 @@ namespace Avogadro
         break;
 
       iEdgeFlags = a2iTriangleConnectionTable[iFlagIndex][iEdge++];
-      normTmp.p0 = asEdgeNorm[iEdgeFlags];
-      vertTmp.p0 = asEdgeVertex[iEdgeFlags];
+      vertexTmp[0] = asEdgeVertex[iEdgeFlags];
+      normalTmp[0] = asEdgeNorm[iEdgeFlags];
 
       iEdgeFlags = a2iTriangleConnectionTable[iFlagIndex][iEdge++];
-      normTmp.p1 = asEdgeNorm[iEdgeFlags];
-      vertTmp.p1 = asEdgeVertex[iEdgeFlags];
+      vertexTmp[1] = asEdgeVertex[iEdgeFlags];
+      normalTmp[1] = asEdgeNorm[iEdgeFlags];
 
       iEdgeFlags = a2iTriangleConnectionTable[iFlagIndex][iEdge];
-      normTmp.p2 = asEdgeNorm[iEdgeFlags];
-      vertTmp.p2 = asEdgeVertex[iEdgeFlags];
+      vertexTmp[2] = asEdgeVertex[iEdgeFlags];
+      normalTmp[2] = asEdgeNorm[iEdgeFlags];
 
-      m_normList.append(normTmp);
-      m_vertList.append(vertTmp);
+      m_mesh.addTriangles(vertexTmp);
+      m_mesh.addNormals(normalTmp);
     }
   } // vMarchCube1()
-
+/*
   int IsoGen::numTriangles()
   {
     return m_vertListCopy.size();
@@ -926,7 +924,7 @@ namespace Avogadro
   {
     return m_normListCopy[i];
   }
-
+*/
   // vMarchCube2 performs the Marching Tetrahedrons algorithm on a single cube by
 /*  // making six calls to vMarchTetrahedron
 void IsoGen::vMarchCube2(const float fX, const float fY, const float fZ)

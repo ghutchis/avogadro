@@ -70,6 +70,8 @@ namespace Avogadro {
         FragmentType,
         /// Surface Primitive
         SurfaceType,
+        /// Surface Mesh Primitive
+        MeshType,
         /// Cube Primitive
         CubeType,
         /// Plane Primitive

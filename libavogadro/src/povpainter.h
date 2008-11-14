@@ -270,6 +270,11 @@ namespace Avogadro
                            const Eigen::Vector3d & point3, const Eigen::Vector3d & point4,
                            double lineWidth);
 
+    /**
+     * Draws the given mesh.
+     */
+    void drawMesh(const Mesh & mesh, int mode = 0, bool normalWind = true) { ; }
+
     int drawText (int x, int y, const QString &string) const;
     int drawText (const QPoint& pos, const QString &string) const;
     int drawText (const Vector3d & pos, const QString &string) const;
