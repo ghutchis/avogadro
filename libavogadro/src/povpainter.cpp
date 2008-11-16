@@ -1,7 +1,7 @@
 /**********************************************************************
   POVPainter - drawing spheres, cylinders and text in a POVRay scene
 
-  Copyright (C) 2007 Marcus D. Hanwell
+  Copyright (C) 2007, 2008 Marcus D. Hanwell
 
   This file is part of the Avogadro molecular editor project.
   For more information, see <http://avogadro.sourceforge.net/>

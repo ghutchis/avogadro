@@ -647,7 +647,8 @@ namespace Avogadro
   // This gradient can be used as a very accurate vertex normal for lighting calculations
   void IsoGen::vGetNormal(Eigen::Vector3f &rfNormal, const float fX, const float fY, const float fZ)
   {
-    rfNormal = Vector3f(m_grid->eval(fX-0.01f, fY, fZ) - m_grid->eval(fX+0.01f, fY, fZ),
+    rfNormal = Vector3f(
+        m_grid->eval(fX-0.01f, fY, fZ) - m_grid->eval(fX+0.01f, fY, fZ),
         m_grid->eval(fX, fY-0.01f, fZ) - m_grid->eval(fX, fY+0.01f, fZ),
         m_grid->eval(fX, fY, fZ-0.01f) - m_grid->eval(fX, fY, fZ+0.01f));
 

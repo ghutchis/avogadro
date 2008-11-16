@@ -81,6 +81,15 @@ namespace Avogadro {
                    double spacing);
 
     /**
+     * Set the limits of the cube.
+     * @param min The minimum point in the cube.
+     * @param dim The integer dimensions of the cube in x, y and z.
+     * @param spacing The interval between points in the cube.
+     */
+    bool setLimits(const Eigen::Vector3d &min, const Eigen::Vector3i &dim,
+                   double spacing);
+
+    /**
      * Set the limits of the cube by the molecule supplied with padding.
      * @param mol The molecule to use when finding bounds.
      * @param spacing The interval between points in the cube.

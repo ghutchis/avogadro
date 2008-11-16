@@ -25,6 +25,11 @@
 
 #include "gaussianinputdialog.h"
 
+#include <avogadro/molecule.h>
+#include <avogadro/atom.h>
+
+#include <openbabel/mol.h>
+
 #include <QString>
 #include <QTextStream>
 #include <QFileDialog>
@@ -366,9 +371,11 @@ namespace Avogadro
       QTextStream mol(&buffer);
       QList<Atom *> atoms = m_molecule->atoms();
       foreach (Atom *atom, atoms) {
-        mol << qSetFieldWidth(3) << left << QString(etab.GetSymbol(atom->GetAtomicNum()))
+        mol << qSetFieldWidth(3) << left
+            << QString(OpenBabel::etab.GetSymbol(atom->atomicNumber()))
             << qSetFieldWidth(15) << qSetRealNumberPrecision(5) << forcepoint
-            << fixed << right << atom->pos().x() << atom->pos.y() << atom->pos.z()
+            << fixed << right << atom->pos().x() << atom->pos().y()
+            << atom->pos().z()
             << qSetFieldWidth(0) << "\n";
       }
       mol << "\n";
@@ -377,14 +384,15 @@ namespace Avogadro
     else if (m_molecule && m_coordType == ZMATRIX)
     {
       QTextStream mol(&buffer);
-      OBAtom *a, *b, *c;
+      OpenBabel::OBAtom *a, *b, *c;
       double r, w, t;
 
       /* Taken from OpenBabel's gzmat file format converter */
-      std::vector<OBInternalCoord*> vic;
-      vic.push_back((OBInternalCoord*)NULL);
-      FOR_ATOMS_OF_MOL(atom, m_molecule)
-        vic.push_back(new OBInternalCoord);
+      std::vector<OpenBabel::OBInternalCoord*> vic;
+      vic.push_back((OpenBabel::OBInternalCoord*)NULL);
+      OpenBabel::OBMol obmol = m_molecule->OBMol();
+      FOR_ATOMS_OF_MOL(atom, &obmol)
+        vic.push_back(new OpenBabel::OBInternalCoord);
       CartesianToInternal(vic, (OpenBabel::OBMol&)*m_molecule);
 
       QList<Atom *> atoms = m_molecule->atoms();
@@ -393,19 +401,20 @@ namespace Avogadro
         b = vic[atom->index()]->_b;
         c = vic[atom->index()]->_c;
 
-        mol << qSetFieldWidth(3) << left << QString(etab.GetSymbol(atom->GetAtomicNum()))
+        mol << qSetFieldWidth(3) << left
+            << QString(OpenBabel::etab.GetSymbol(atom->atomicNumber()))
             << qSetFieldWidth(0);
-        if (atom->GetIdx() > 1)
-          mol << " " << a->index() << " r" << atom->GetIdx();
-        if (atom->GetIdx() > 2)
-          mol << " " << b->GetIdx() << " a" << atom->GetIdx();
-        if (atom->GetIdx() > 3)
-          mol << " " << c->GetIdx() << " d" << atom->GetIdx();
+        if (atom->index() > 1)
+          mol << " " << a->GetIdx() << " r" << atom->index();
+        if (atom->index() > 2)
+          mol << " " << b->GetIdx() << " a" << atom->index();
+        if (atom->index() > 3)
+          mol << " " << c->GetIdx() << " d" << atom->index();
         mol << "\n";
       }
 
       mol << "Variables:" << endl;
-      FOR_ATOMS_OF_MOL(atom, m_molecule)
+      FOR_ATOMS_OF_MOL(atom, &obmol)
       {
         r = vic[atom->GetIdx()]->_dst;
         w = vic[atom->GetIdx()]->_ang;
@@ -438,11 +447,12 @@ namespace Avogadro
       /* Taken from OpenBabel's gzmat file format converter */
       std::vector<OBInternalCoord*> vic;
       vic.push_back((OBInternalCoord*)NULL);
-      FOR_ATOMS_OF_MOL(atom, m_molecule)
+      OpenBabel::OBMol obmol = m_molecule->OBMol();
+      FOR_ATOMS_OF_MOL(atom, &obmol)
         vic.push_back(new OBInternalCoord);
-      CartesianToInternal(vic, (OpenBabel::OBMol&)*m_molecule);
+      CartesianToInternal(vic, obmol);
 
-      FOR_ATOMS_OF_MOL(atom, m_molecule)
+      FOR_ATOMS_OF_MOL(atom, &obmol)
       {
         a = vic[atom->GetIdx()]->_a;
         b = vic[atom->GetIdx()]->_b;

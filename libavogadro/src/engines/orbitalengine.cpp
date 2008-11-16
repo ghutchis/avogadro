@@ -89,28 +89,13 @@ namespace Avogadro {
       if (m_update)
         updateSurfaces(pd);
 
-      switch (m_renderMode)
-      {
-      case 0:
-        glPolygonMode(GL_FRONT, GL_FILL);
-        break;
-      case 1:
-        glPolygonMode(GL_FRONT, GL_LINE);
-        glDisable(GL_LIGHTING);
-        break;
-      case 2:
-        glPolygonMode(GL_FRONT, GL_POINT);
-        glDisable(GL_LIGHTING);
-        break;
-      }
+      pd->painter()->setColor(&m_posColor);
+      pd->painter()->drawMesh(m_isoGen->mesh(), m_renderMode);
+
+      pd->painter()->setColor(&m_negColor);
+      pd->painter()->drawMesh(m_isoGen2->mesh(), m_renderMode, false);
 
       renderSurfaces(pd);
-
-      if (m_renderMode)
-      {
-        glPolygonMode(GL_FRONT, GL_FILL);
-        glEnable(GL_LIGHTING);
-      }
     }
 
     return true;
@@ -124,34 +109,22 @@ namespace Avogadro {
       if (m_update)
         updateSurfaces(pd);
 
-      switch (m_renderMode)
-      {
-      case 0:
-        glPolygonMode(GL_FRONT, GL_FILL);
+      if (m_renderMode == 0) {
         glEnable(GL_BLEND);
         glDepthMask(GL_TRUE);
-        break;
-      case 1:
-        glPolygonMode(GL_FRONT, GL_LINE);
-        glDisable(GL_LIGHTING);
-        break;
-      case 2:
-        glPolygonMode(GL_FRONT, GL_POINT);
-        glDisable(GL_LIGHTING);
-        break;
       }
+
+      pd->painter()->setColor(&m_posColor);
+      pd->painter()->drawMesh(m_isoGen->mesh(), m_renderMode);
+
+      pd->painter()->setColor(&m_negColor);
+      pd->painter()->drawMesh(m_isoGen2->mesh(), m_renderMode, false);
 
       renderSurfaces(pd);
 
-      if (m_renderMode == 0)
-      {
+      if (m_renderMode == 0) {
         glDisable(GL_BLEND);
         glDepthMask(GL_FALSE);
-      }
-      else
-      {
-        glPolygonMode(GL_FRONT, GL_FILL);
-        glEnable(GL_LIGHTING);
       }
     }
     return true;
@@ -162,74 +135,25 @@ namespace Avogadro {
     if (m_update)
       updateSurfaces(pd);
 
-    switch (m_renderMode)
-    {
-      case 0:
-        ;
-      case 1:
-        glPolygonMode(GL_FRONT, GL_LINE);
-        glDisable(GL_LIGHTING);
-        break;
-      case 2:
-        glPolygonMode(GL_FRONT, GL_POINT);
-        glDisable(GL_LIGHTING);
-        break;
+    if (m_renderMode < 2) {
+      pd->painter()->setColor(&m_posColor);
+      pd->painter()->drawMesh(m_isoGen->mesh(), 1);
+      pd->painter()->setColor(&m_negColor);
+      pd->painter()->drawMesh(m_isoGen2->mesh(), 1, false);
     }
-
+    else {
+      pd->painter()->setColor(&m_posColor);
+      pd->painter()->drawMesh(m_isoGen->mesh(), 2);
+      pd->painter()->setColor(&m_negColor);
+      pd->painter()->drawMesh(m_isoGen2->mesh(), 2, false);
+    }
     renderSurfaces(pd);
-
-    glPolygonMode(GL_FRONT, GL_FILL);
-    glEnable(GL_LIGHTING);
 
     return true;
   }
 
   bool OrbitalEngine::renderSurfaces(PainterDevice *pd)
   {
-    pd->painter()->setColor(&m_posColor);
-    pd->painter()->drawMesh(m_isoGen->mesh(), m_renderMode);
-
-    pd->painter()->setColor(&m_negColor);
-    pd->painter()->drawMesh(m_isoGen2->mesh(), m_renderMode, false);
-/*
-    glBegin(GL_TRIANGLES);
-
-    // Render the positive surface
-    m_posColor.apply();
-    m_posColor.applyAsMaterials();
-    
-    for(int i=0; i < m_isoGen->numTriangles(); ++i)
-    {
-      triangle t = m_isoGen->getTriangle(i);
-      triangle n = m_isoGen->getNormal(i);
-      glNormal3fv(n.p0.data());
-      glVertex3fv(t.p0.data());
-      glNormal3fv(n.p1.data());
-      glVertex3fv(t.p1.data());
-      glNormal3fv(n.p2.data());
-      glVertex3fv(t.p2.data());
-    }
-
-    // Render the negative surface
-    m_negColor.apply();
-    m_negColor.applyAsMaterials();
-    for(int i=0; i < m_isoGen2->numTriangles(); ++i)
-    {
-      triangle t = m_isoGen2->getTriangle(i);
-      triangle n = m_isoGen2->getNormal(i);
-      // Fix the lighting by reversing the normals and the triangle winding
-      n.p0 *= -1;
-      n.p1 *= -1;
-      n.p2 *= -1;
-      glNormal3fv(n.p2.data());
-      glVertex3fv(t.p2.data());
-      glNormal3fv(n.p1.data());
-      glVertex3fv(t.p1.data());
-      glNormal3fv(n.p0.data());
-      glVertex3fv(t.p0.data());
-    }
-    glEnd();
-*/
     // Draw the extents of the cube if requested to
     if (m_drawBox) {
       pd->painter()->setColor(1.0, 1.0, 1.0);

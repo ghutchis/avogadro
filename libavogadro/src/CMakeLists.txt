@@ -88,5 +88,5 @@ INSTALL(FILES ${libavogadro_QM} DESTINATION share/libavogadro/i18n)
 # Add the engiens, tools and extensions directories
 add_subdirectory(engines)
 add_subdirectory(tools)
-#add_subdirectory(extensions)
+add_subdirectory(extensions)
 add_subdirectory(colors)

@@ -33,6 +33,9 @@
 
 namespace Avogadro {
 
+  using Eigen::Vector3i;
+  using Eigen::Vector3d;
+
   Cube::Cube(QObject *parent) : Primitive(CubeType, parent), m_data(0),
     m_min(0.0, 0.0, 0.0), m_max(0.0, 0.0, 0.0), m_spacing(0.0, 0.0, 0.0),
     m_points(0, 0, 0)
@@ -43,14 +46,14 @@ namespace Avogadro {
   {
   }
 
-  bool Cube::setLimits(const Eigen::Vector3d &min, const Eigen::Vector3d &max,
-                       const Eigen::Vector3i &points)
+  bool Cube::setLimits(const Vector3d &min, const Vector3d &max,
+                       const Vector3i &points)
   {
     // We can calculate all necessary properties and initialise our data
-    Eigen::Vector3d delta = max - min;
-    m_spacing = Eigen::Vector3d(delta.x() / points.x(),
-                                delta.y() / points.y(),
-                                delta.z() / points.z());
+    Vector3d delta = max - min;
+    m_spacing = Vector3d(delta.x() / points.x(),
+                         delta.y() / points.y(),
+                         delta.z() / points.z());
     m_min = min;
     m_max = max;
     m_points = points;
@@ -58,21 +61,35 @@ namespace Avogadro {
     return true;
   }
 
-  bool Cube::setLimits(const Eigen::Vector3d &min, const Eigen::Vector3d &max,
+  bool Cube::setLimits(const Vector3d &min, const Vector3d &max,
                        double spacing)
   {
-    Eigen::Vector3i points;
-    Eigen::Vector3d delta = max - min;
+    Vector3i points;
+    Vector3d delta = max - min;
     delta = delta / spacing;
-    points = Eigen::Vector3i(delta.x(), delta.y(), delta.z());
+    points = Vector3i(delta.x(), delta.y(), delta.z());
     return setLimits(min, max, points);
+  }
+
+  bool Cube::setLimits(const Vector3d &min, const Vector3i &dim,
+                       double spacing)
+  {
+    Vector3d max = Vector3d(min.x() + dim.x() * spacing,
+                            min.y() + dim.y() * spacing,
+                            min.z() + dim.z() * spacing);
+    m_min = min;
+    m_max = max;
+    m_points = dim;
+    m_spacing = Vector3d(spacing, spacing, spacing);
+    m_data.resize(m_points.x() * m_points.y() * m_points.z());
+    return true;
   }
 
   bool Cube::setLimits(const Molecule *mol, double spacing, double padding)
   {
     QList<Atom *> atoms = mol->atoms();
-    Eigen::Vector3d min(0.0, 0.0, 0.0);
-    Eigen::Vector3d max(0.0, 0.0, 0.0);
+    Vector3d min(0.0, 0.0, 0.0);
+    Vector3d max(0.0, 0.0, 0.0);
     foreach (Atom *atom, atoms) {
       if (atom->pos().x() < min.x())
         min[0] = atom->pos().x();
@@ -89,8 +106,8 @@ namespace Avogadro {
     }
 
     // Now to take care of the padding term
-    min += Eigen::Vector3d(-padding, -padding, -padding);
-    max += Eigen::Vector3d(padding, padding, padding);
+    min += Vector3d(-padding, -padding, -padding);
+    max += Vector3d(padding, padding, padding);
 
     return setLimits(min, max, spacing);
   }
@@ -112,7 +129,7 @@ namespace Avogadro {
     }
   }
 
-  unsigned int Cube::closestIndex(const Eigen::Vector3d &pos) const
+  unsigned int Cube::closestIndex(const Vector3d &pos) const
   {
     int i, j, k;
     // Calculate how many steps each coordinate is along its axis
@@ -122,25 +139,25 @@ namespace Avogadro {
     return i*m_points.y()*m_points.z() + j*m_points.z() + k;
   }
 
-  Eigen::Vector3i Cube::indexVector(const Eigen::Vector3d &pos) const
+  Vector3i Cube::indexVector(const Vector3d &pos) const
   {
     // Calculate how many steps each coordinate is along its axis
     int i, j, k;
     i = (pos.x() - m_min.x()) / m_spacing.x();
     j = (pos.y() - m_min.y()) / m_spacing.y();
     k = (pos.z() - m_min.z()) / m_spacing.z();
-    return Eigen::Vector3i(i, j, k);
+    return Vector3i(i, j, k);
   }
 
-  Eigen::Vector3d Cube::position(int index) const
+  Vector3d Cube::position(int index) const
   {
     int x, y, z;
     x = static_cast<int>(index / (m_points.y()*m_points.z()));
     y = static_cast<int>((index - (x*m_points.y()*m_points.z())) / m_points.z());
     z = index % m_points.z();
-    return Eigen::Vector3d(x * m_spacing.x() + m_min.x(),
-                           y * m_spacing.y() + m_min.y(),
-                           z * m_spacing.z() + m_min.z());
+    return Vector3d(x * m_spacing.x() + m_min.x(),
+                    y * m_spacing.y() + m_min.y(),
+                    z * m_spacing.z() + m_min.z());
   }
 
   double Cube::value(int i, int j, int k) const
@@ -154,7 +171,7 @@ namespace Avogadro {
     }
   }
 
-  double Cube::value(const Eigen::Vector3i &pos) const
+  double Cube::value(const Vector3i &pos) const
   {
     unsigned int index = pos.x()*m_points.y()*m_points.z() +
                          pos.y()*m_points.z() +
@@ -165,24 +182,24 @@ namespace Avogadro {
       return 0.0;
   }
 
-  double Cube::value(const Eigen::Vector3d &pos) const
+  double Cube::value(const Vector3d &pos) const
   {
     // This is a really expensive operation and so should be avoided
     // Interpolate the value at the supplied vector - trilinear interpolation...
-    Eigen::Vector3d delta = pos - m_min;
+    Vector3d delta = pos - m_min;
     // Find the integer low and high corners
-    Eigen::Vector3i lC(delta.x() / m_spacing.x(),
-                       delta.y() / m_spacing.y(),
-                       delta.z() / m_spacing.z());
-    Eigen::Vector3i hC(lC.x() + 1,
-                       lC.y() + 1,
-                       lC.z() + 1);
+    Vector3i lC(delta.x() / m_spacing.x(),
+                delta.y() / m_spacing.y(),
+                delta.z() / m_spacing.z());
+    Vector3i hC(lC.x() + 1,
+                lC.y() + 1,
+                lC.z() + 1);
     // So there are six corners in total - work out the delta of the position
     // and the low corner
-    Eigen::Vector3d P((delta.x() - lC.x()*m_spacing.x()) / m_spacing.x(),
-                      (delta.y() - lC.y()*m_spacing.y()) / m_spacing.y(),
-                      (delta.z() - lC.z()*m_spacing.z()) / m_spacing.z());
-    Eigen::Vector3d dP = Eigen::Vector3d(1.0, 1.0, 1.0) - P;
+    Vector3d P((delta.x() - lC.x()*m_spacing.x()) / m_spacing.x(),
+               (delta.y() - lC.y()*m_spacing.y()) / m_spacing.y(),
+               (delta.z() - lC.z()*m_spacing.z()) / m_spacing.z());
+    Vector3d dP = Vector3d(1.0, 1.0, 1.0) - P;
     // Now calculate and return the interpolated value
     return value(lC.x(), lC.y(), lC.z()) * dP.x() * dP.y() * dP.z() +
            value(hC.x(), lC.y(), lC.z()) * P.x()  * dP.y() * dP.z() +
