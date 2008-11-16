@@ -393,13 +393,13 @@ namespace Avogadro
       OpenBabel::OBMol obmol = m_molecule->OBMol();
       FOR_ATOMS_OF_MOL(atom, &obmol)
         vic.push_back(new OpenBabel::OBInternalCoord);
-      CartesianToInternal(vic, (OpenBabel::OBMol&)*m_molecule);
+      CartesianToInternal(vic, obmol);
 
       QList<Atom *> atoms = m_molecule->atoms();
       foreach (Atom *atom, atoms) {
-        a = vic[atom->index()]->_a;
-        b = vic[atom->index()]->_b;
-        c = vic[atom->index()]->_c;
+        a = vic[atom->index()+1]->_a;
+        b = vic[atom->index()+1]->_b;
+        c = vic[atom->index()+1]->_c;
 
         mol << qSetFieldWidth(3) << left
             << QString(OpenBabel::etab.GetSymbol(atom->atomicNumber()))
