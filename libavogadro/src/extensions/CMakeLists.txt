@@ -179,3 +179,11 @@ endif(BOOST_PYTHON_FOUND OR Boost_PYTHON_FOUND)
 #  ${linmorphdialog_UIS_H} ${linmorphextension_RC_SRCS} )
 #target_link_libraries(linmorphextension ${LINK_LIBS})
 #install(TARGETS linmorphextension DESTINATION ${DESTINATION_DIR})
+
+### unit cells
+set(povrayextension_SRCS povrayextension.cpp povpainter.cpp povraydialog.cpp)
+qt4_wrap_ui(povrayextension_UIS_H povraydialog.ui)
+qt4_automoc(${povrayextension_SRCS})
+add_library(povrayextension MODULE ${povrayextension_SRCS} ${povrayextension_UIS_H})
+target_link_libraries(povrayextension ${LINK_LIBS})
+install(TARGETS povrayextension DESTINATION ${DESTINATION_DIR})

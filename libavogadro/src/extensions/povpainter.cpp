@@ -326,6 +326,7 @@ namespace Avogadro
 
     initializePOV();
     render();
+    m_file->close();
   }
 
   POVPainterDevice::~POVPainterDevice()
@@ -333,7 +334,6 @@ namespace Avogadro
     m_painter->end();
     delete m_output;
     m_output = 0;
-    m_file->close();
     delete m_file;
   }
 

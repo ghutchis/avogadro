@@ -51,7 +51,6 @@
 
 #include <avogadro/primitiveitemmodel.h>
 #include <avogadro/toolgroup.h>
-#include <avogadro/povpainter.h>
 
 #include <openbabel/obconversion.h>
 #include <openbabel/mol.h>
@@ -95,6 +94,7 @@
 
 using namespace std;
 using namespace OpenBabel;
+using namespace Eigen;
 
 namespace Avogadro
 {
@@ -1006,55 +1006,6 @@ namespace Avogadro
     }
   }
 
-  void MainWindow::exportPOV()
-  {
-    QSettings settings;
-    QString selectedFilter = settings.value("Export POV-Ray Filter", tr("POV-Ray format") + " (*.pov)").toString();
-
-    QStringList filters;
-    filters << tr("POV-Ray format") + " (*.pov)"
-            << tr("All files") + " (* *.*)";
-
-    QString fileName = SaveDialog::run(this,
-                                       tr("Export POV Scene"),
-                                       d->fileDialogPath,
-                                       d->fileName,
-                                       filters,
-                                       "pov",
-                                       selectedFilter);
-
-    settings.setValue("Export POV-Ray Filter", selectedFilter);
-
-    if(fileName.isEmpty()) {
-      return;
-    }
-
-    bool ok;
-    int w = d->glWidget->width();
-    int h = d->glWidget->height();
-    double defaultAspectRatio = static_cast<double>(w)/h;
-    double aspectRatio =
-      QInputDialog::getDouble(0,
-      QObject::tr("Set Aspect Ratio"),
-      QObject::tr("The current Avogadro scene is %1x%2 pixels large, "
-          "and therefore has aspect ratio %3.\n"
-          "You may keep this value, for example if you intend to use POV-Ray\n"
-          "to produce an image of %4x1000 pixels, "
-          "or you may enter any other positive value,\n"
-          "for example 1 if you intend to use POV-Ray to produce a square image, "
-          "like 1000x1000 pixels.")
-          .arg(w).arg(h).arg(defaultAspectRatio)
-          .arg(static_cast<int>(1000*defaultAspectRatio)),
-      defaultAspectRatio,
-      0.1,
-      10,
-      6,
-      &ok);
-
-    if(ok)
-      POVPainterDevice pd( fileName, aspectRatio, d->glWidget );
-  }
-
   void MainWindow::revert()
   {
     if ( !d->fileName.isEmpty() ) {
@@ -1662,7 +1613,6 @@ namespace Avogadro
     connect( ui.actionRevert, SIGNAL( triggered() ), this, SLOT( revert() ) );
     connect( ui.actionExportGraphics, SIGNAL( triggered() ), this, SLOT( exportGraphics() ) );
     ui.actionExportGraphics->setEnabled( QGLFramebufferObject::hasOpenGLFramebufferObjects() );
-    connect( ui.actionExportPOV, SIGNAL( triggered() ), this, SLOT( exportPOV() ) );
 #ifdef Q_WS_MAC
     connect( ui.actionQuit, SIGNAL( triggered() ), this, SLOT( macQuit() ) );
     connect( ui.actionQuitTool, SIGNAL( triggered() ), this, SLOT( macQuit() ) );
