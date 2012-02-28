@@ -32,7 +32,6 @@
 #include "avospglib.h"
 #include "crystalpastedialog.h"
 #include "ceundo.h"
-#include "obeigenconv.h"
 #include "stablecomparison.h"
 #include "ui/ceabstracteditor.h"
 #include "ui/cecoordinateeditor.h"
@@ -43,9 +42,11 @@
 #include "ui/ceviewoptionswidget.h"
 
 #include <avogadro/atom.h>
+#include <avogadro/camera.h>
 #include <avogadro/glwidget.h>
 #include <avogadro/neighborlist.h>
 #include <avogadro/bond.h>
+#include <avogadro/obeigenconv.h>
 
 #include <openbabel/generic.h>
 #include <openbabel/mol.h>
@@ -219,6 +220,9 @@ namespace Avogadro
     if (!m_molecule || !m_molecule->OBUnitCell()) {
       hideEditors();
       hideProperties();
+      // Reset camera since GLWidget geometry may have changed.
+      if (GLWidget::current() != NULL) // (happens during startup)
+        GLWidget::current()->camera()->initializeViewPoint();
       return;
     }
 
@@ -243,6 +247,8 @@ namespace Avogadro
 
     showEditors();
     showProperties();
+    // Reset camera since GLWidget geometry may have changed.
+    GLWidget::current()->camera()->initializeViewPoint();
   }
 
   void CrystallographyExtension::writeSettings(QSettings &settings) const
@@ -2498,7 +2504,32 @@ namespace Avogadro
 
   void CrystallographyExtension::actionToggleUnitCell()
   {
-    toggleUnitCell();
+    bool hasCell = static_cast<bool>(currentCell());
+
+    if (!hasCell) {
+      OpenBabel::OBUnitCell *cell
+        = new OpenBabel::OBUnitCell;
+      cell->SetData(3.0, 3.0, 3.0,
+                    90.0, 90.0, 90.0);
+
+      pushUndo(new CEAddCellUndoCommand(m_molecule, cell, this));
+      cell = 0; // Undo constructor takes ownership of cell.
+      emit cellChanged();
+      showEditors();
+      GLWidget::current()->setRenderUnitCellAxes(true);
+      // Reset the camera if there are no atoms present
+      if (m_molecule->numAtoms() == 0) {
+        GLWidget::current()->camera()->initializeViewPoint();
+      }
+      refreshActions();
+    }
+    else {
+      pushUndo(new CERemoveCellUndoCommand(m_molecule, this));
+      emit cellChanged();
+      hideEditors();
+      GLWidget::current()->setRenderUnitCellAxes(false);
+      refreshActions();
+    }
   }
 
   void CrystallographyExtension::actionPasteCrystal()
