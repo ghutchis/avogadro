@@ -72,6 +72,7 @@ set(libavogadro_SRCS
   avospglib.cpp
   bond.cpp
   camera.cpp
+  clippedcylinder_p.cpp
   color.cpp
   colorbutton.cpp
   cube.cpp
