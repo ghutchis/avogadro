@@ -315,7 +315,7 @@ namespace Avogadro {
       m_settingsWidget->bondColor->setDialogTitle(tr("Select Bond Labels Color"));
 
       // Hide the text rendering engine choice and label for release builds
-#ifndef(DEBUG)
+#ifndef DEBUG
       m_settingsWidget->textRendering->hide();
       m_settingsWidget->label_3->hide();
 #endif
