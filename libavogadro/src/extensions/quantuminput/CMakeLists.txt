@@ -10,6 +10,7 @@ set(inputfileextension_SRCS
     inputdialog.cpp
     abinitinputdialog.cpp
     daltoninputdialog.cpp
+    espressoinputdialog.cpp
     gamessukinputdialog.cpp
     gaussianinputdialog.cpp
     molproinputdialog.cpp
@@ -22,6 +23,7 @@ set(inputfileextension_UIS
   abinitinputdialog.ui
   gaussianinputdialog.ui
   daltoninputdialog.ui
+  espressoinputdialog.ui
   gamessukinputdialog.ui
   molproinputdialog.ui
   mopacinputdialog.ui
@@ -33,6 +35,8 @@ avogadro_plugin_nogl(inputfileextension
   "${inputfileextension_SRCS}"
   "${inputfileextension_UIS}"
  )
+
+target_link_libraries(inputfileextension spglib)
 
 ### gamess
 set(gamessextension_SRCS
