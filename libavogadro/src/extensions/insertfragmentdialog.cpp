@@ -152,6 +152,19 @@ namespace Avogadro {
     delete d;
   }
 
+  const QString InsertFragmentDialog::fileName()
+  {
+    // The selected model index is in the proxy
+    QModelIndexList selected = ui.directoryTreeView->selectionModel()->selectedIndexes();
+
+    if (selected.isEmpty()) {
+      return QString();
+    }
+
+    // Remember to map to the source model
+    return d->model->filePath(d->proxy->mapToSource(selected.first()));
+  }
+
   const Molecule &InsertFragmentDialog::fragment()
   {
     // The selected model index is in the proxy
@@ -170,6 +183,8 @@ namespace Avogadro {
 
     if (fileName == d->currentFileName)
       return d->fragment; // don't re-read the file
+
+    d->currentFileName = fileName;
 
     d->fragment.clear();
     // Check if it's a directory
