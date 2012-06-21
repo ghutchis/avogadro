@@ -24,7 +24,6 @@
 
 #include "crystalpastedialog.h"
 
-
 #include <avogadro/atom.h>
 #include <avogadro/obeigenconv.h>
 
